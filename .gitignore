@@ -1,4 +1,9 @@
-demo/
 node_modules/
 3d-logo-skill-npx-skills-support
 PROMO.md
+
+# demo/ (Vite + React live demo, see demo/README or the repo README's "Live demo" section)
+demo/node_modules
+demo/dist
+demo/test-results
+demo/playwright-report

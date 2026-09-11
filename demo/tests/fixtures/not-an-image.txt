@@ -1,0 +1,2 @@
+This is a plain text file used by the Playwright smoke test to confirm
+non-image uploads are rejected with a clear error message.
