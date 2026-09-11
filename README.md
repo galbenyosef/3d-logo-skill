@@ -12,6 +12,8 @@
 **Turn any flat logo into a premium 3D spinning coin.**\
 One command. Any logo. Instant 3D.
 
+**[Try it live](https://hasuwini77.github.io/3d-logo-skill/)** — drop in your own logo, see it spin in 10 seconds.
+
 <br/>
 
 <img src="screenshots/logo1.webp" width="280" alt="Phoenix Shield 3D coin" />&nbsp;&nbsp;&nbsp;<img src="screenshots/logo2.webp" width="280" alt="Cosmic Eye 3D coin" />&nbsp;&nbsp;&nbsp;<img src="screenshots/logo3.webp" width="280" alt="Wolf Compass 3D coin" />
@@ -57,6 +59,10 @@ npx skills add hasuwini77/3d-logo-skill
 The `npx skills add` command auto-detects which agents you have installed and places the skill in the correct directory for each.
 
 </details>
+
+## Live Demo
+
+Try it right now, no install required: [hasuwini77.github.io/3d-logo-skill](https://hasuwini77.github.io/3d-logo-skill/). Pick one of the 3 sample logos or drag in your own — it renders live with the exact `SpinningLogo3D.tsx` architecture this skill generates (transparency, Sobel normal map, perimeter-traced chrome rim, environment reflections). Your logo is processed entirely in the browser on an offscreen canvas and never uploaded anywhere.
 
 ## Usage
 
