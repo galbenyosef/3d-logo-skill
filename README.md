@@ -49,8 +49,13 @@ npx skills add hasuwini77/3d-logo-skill
 <summary>Agent-specific install</summary>
 
 ```bash
-# Claude Code
-claude install github:hasuwini77/3d-logo-skill
+# Claude Code (terminal)
+claude plugin marketplace add hasuwini77/3d-logo-skill
+claude plugin install 3d-logo@3d-logo-skill
+
+# or inside a Claude Code session
+/plugin marketplace add hasuwini77/3d-logo-skill
+/plugin install 3d-logo@3d-logo-skill
 
 # Cursor / Copilot / Gemini CLI / others
 npx skills add hasuwini77/3d-logo-skill
