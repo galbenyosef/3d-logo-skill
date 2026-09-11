@@ -10,7 +10,7 @@
   --border-strong: #333a45;
   --text: #e8eaed;
   --text-dim: #949aa5;
-  --text-faint: #656c78;
+  --text-faint: #7d8490;
   --accent: #6dcbe8;
   --accent-strong: #06b6d4;
   --accent-ink: #04222a;
@@ -118,6 +118,7 @@ a {
 }
 
 .brand {
+  margin: 0;
   font-size: var(--text-heading);
   font-weight: var(--weight-medium);
   letter-spacing: -0.01em;

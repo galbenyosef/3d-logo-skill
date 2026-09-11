@@ -124,7 +124,7 @@ export default function App() {
   return (
     <div className="page">
       <header className="topbar">
-        <span className="brand">3D Logo Skill</span>
+        <h1 className="brand">3D Logo Skill</h1>
         <div className="topbar-actions">
           <button type="button" className="btn btn-ghost mono" onClick={() => void handleCopy()}>
             {copied ? 'Copied!' : INSTALL_COMMAND}
