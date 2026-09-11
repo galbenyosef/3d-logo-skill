@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyBrightnessThreshold,
+  dropSmallSpecks,
   extractPerimeter,
   generateNormalMapData,
   hasNativeAlpha,
-  largestComponentMask,
   pickRimPalette,
 } from './textureProcessing'
 
@@ -75,50 +75,99 @@ describe('extractPerimeter', () => {
   it('ignores a detached stray pixel far to the right of the main blob', () => {
     // Regression test for the rim "stray strip" bug: a single fully-opaque
     // pixel far outside the logo (e.g. a compression artifact or watermark
-    // speck) must not drag the row-scan's right edge out to it.
-    const width = 20
-    const height = 20
+    // speck) must not drag the row-scan's right edge out to it. The blob is
+    // sized so the speck is well under MIN_COMPONENT_RATIO (0.5%) of it.
+    const width = 100
+    const height = 100
     const data = new Uint8ClampedArray(width * height * 4)
-    for (let y = 5; y < 15; y++) {
-      for (let x = 3; x <= 7; x++) {
-        data[(y * width + x) * 4 + 3] = 255
+    for (let y = 20; y < 60; y++) {
+      for (let x = 10; x < 30; x++) {
+        data[(y * width + x) * 4 + 3] = 255 // 20x40 = 800px blob
       }
     }
-    // Detached stray pixel, far to the right, disconnected from the blob.
-    data[(2 * width + 18) * 4 + 3] = 255
+    // Detached stray pixel (1 / 800 = 0.125%), far to the right of the blob.
+    data[(10 * width + 90) * 4 + 3] = 255
 
     const outline = extractPerimeter(data, width, height)
     expect(outline.length).toBeGreaterThan(0)
     for (const [x] of outline) {
-      // Blob spans columns 3-7 of 20 -> normalized x in roughly [-0.35, -0.15].
-      // The stray pixel at column 18 would normalize to about +0.4.
+      // Blob spans columns 10-29 of 100 -> normalized x roughly [-0.4, -0.2].
+      // The stray pixel at column 90 would normalize to about +0.4.
       expect(x).toBeLessThan(0)
     }
   })
+
+  it('keeps every part of a multi-part logo (icon + separate wordmark)', () => {
+    // A second component ~10% the size of the first, well above
+    // MIN_COMPONENT_RATIO, placed below the first with a gap so they don't
+    // touch — must NOT be dropped like the stray-pixel speck above is.
+    const width = 40
+    const height = 100
+    const data = new Uint8ClampedArray(width * height * 4)
+    for (let y = 5; y < 25; y++) {
+      for (let x = 10; x < 30; x++) {
+        data[(y * width + x) * 4 + 3] = 255 // top blob: 20x20 = 400px
+      }
+    }
+    for (let y = 60; y < 64; y++) {
+      for (let x = 15; x < 25; x++) {
+        data[(y * width + x) * 4 + 3] = 255 // bottom blob: 4x10 = 40px (10%)
+      }
+    }
+
+    const outline = extractPerimeter(data, width, height)
+    expect(outline.length).toBeGreaterThan(0)
+    const ys = outline.map(([, y]) => y)
+    // Top blob rows (5-24) normalize to y in ~[0.26, 0.45]; bottom blob rows
+    // (60-63) normalize to y in ~[-0.13, -0.10]. Both must be represented.
+    expect(Math.max(...ys)).toBeGreaterThan(0.2)
+    expect(Math.min(...ys)).toBeLessThan(-0.05)
+  })
 })
 
-describe('largestComponentMask', () => {
-  it('keeps only the largest connected region', () => {
-    const width = 10
-    const height = 5
+describe('dropSmallSpecks', () => {
+  it('drops a speck far under the ratio threshold but keeps the main blob', () => {
+    const width = 40
+    const height = 40
     const opaque = new Uint8Array(width * height)
-    // Large blob: a 3x3 square.
-    for (let y = 1; y <= 3; y++) {
-      for (let x = 1; x <= 3; x++) {
+    // Large blob: a 20x20 square (400px).
+    for (let y = 5; y < 25; y++) {
+      for (let x = 5; x < 25; x++) {
         opaque[y * width + x] = 1
       }
     }
-    // Small detached speck, far away.
-    opaque[1 * width + 9] = 1
+    // Speck: a single pixel (0.25% of 400), far away.
+    opaque[2 * width + 35] = 1
 
-    const mask = largestComponentMask(opaque, width, height)
-    expect(mask[9]).toBe(0) // the speck (row 1, col 9) is dropped
-    expect(mask[2 * width + 2]).toBe(1) // center of the blob survives
-    expect(mask.reduce((a, b) => a + b, 0)).toBe(9) // exactly the 3x3 blob
+    const mask = dropSmallSpecks(opaque, width, height)
+    expect(mask[2 * width + 35]).toBe(0) // the speck is dropped
+    expect(mask[15 * width + 15]).toBe(1) // center of the blob survives
+    expect(mask.reduce((a, b) => a + b, 0)).toBe(400) // exactly the blob
+  })
+
+  it('keeps a second component at 10% of the largest (multi-part logo)', () => {
+    const width = 40
+    const height = 40
+    const opaque = new Uint8Array(width * height)
+    for (let y = 5; y < 25; y++) {
+      for (let x = 5; x < 25; x++) {
+        opaque[y * width + x] = 1 // 20x20 = 400px
+      }
+    }
+    for (let y = 30; y < 34; y++) {
+      for (let x = 10; x < 20; x++) {
+        opaque[y * width + x] = 1 // 4x10 = 40px = 10% of 400
+      }
+    }
+
+    const mask = dropSmallSpecks(opaque, width, height)
+    expect(mask[15 * width + 15]).toBe(1) // main blob survives
+    expect(mask[31 * width + 15]).toBe(1) // second component also survives
+    expect(mask.reduce((a, b) => a + b, 0)).toBe(440)
   })
 
   it('returns an all-zero mask when there is nothing opaque', () => {
-    const mask = largestComponentMask(new Uint8Array(20), 5, 4)
+    const mask = dropSmallSpecks(new Uint8Array(20), 5, 4)
     expect(mask.reduce((a, b) => a + b, 0)).toBe(0)
   })
 })

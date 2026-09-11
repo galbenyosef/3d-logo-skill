@@ -61,11 +61,22 @@ export function generateNormalMapData(colorData: Uint8ClampedArray, width: numbe
 export const ALPHA_OPAQUE_THRESHOLD = 128
 
 /**
- * Flood-fills 4-connected regions of `opaque` and keeps only the largest
- * one. Guards against isolated specks (a watermark, a stray bright pixel)
- * that pass the alpha threshold but sit outside the real logo shape.
+ * A component smaller than this fraction of the largest component's area is
+ * dropped as a speck rather than kept as a real part of the logo. Small
+ * enough that a second/third piece of a multi-part logo (icon + wordmark,
+ * separate letters) survives — only truly tiny detached specks (a watermark
+ * sparkle, a leftover dust pixel) are this disproportionate.
  */
-export function largestComponentMask(opaque: Uint8Array, width: number, height: number): Uint8Array {
+export const MIN_COMPONENT_RATIO = 0.005
+
+/**
+ * Flood-fills 4-connected regions of `opaque` and drops any component whose
+ * area is smaller than `MIN_COMPONENT_RATIO` of the largest one. Guards
+ * against isolated specks (a watermark, a stray bright pixel) that pass the
+ * alpha threshold but sit outside the real logo shape — without discarding
+ * legitimate secondary pieces of a multi-part logo.
+ */
+export function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uint8Array {
   const n = width * height
   const labels = new Int32Array(n).fill(-1)
   const sizes: number[] = []
@@ -118,12 +129,11 @@ export function largestComponentMask(opaque: Uint8Array, width: number, height: 
   const result = new Uint8Array(n)
   if (sizes.length === 0) return result
 
-  let largestLabel = 0
-  for (let i = 1; i < sizes.length; i++) {
-    if (sizes[i] > sizes[largestLabel]) largestLabel = i
-  }
+  const largestSize = Math.max(...sizes)
+  const minSize = largestSize * MIN_COMPONENT_RATIO
   for (let i = 0; i < n; i++) {
-    if (labels[i] === largestLabel) result[i] = 1
+    const label = labels[i]
+    if (label !== -1 && sizes[label] >= minSize) result[i] = 1
   }
   return result
 }
@@ -131,8 +141,9 @@ export function largestComponentMask(opaque: Uint8Array, width: number, height: 
 /**
  * Row-by-row alpha scan tracing the logo's outline, then Laplacian-smoothed
  * (SKILL.md 2b). Pixels are only considered part of the logo if they clear
- * `alphaThreshold` AND belong to the largest connected opaque region — see
- * ALPHA_OPAQUE_THRESHOLD and largestComponentMask above.
+ * `alphaThreshold` AND aren't part of a tiny detached speck — see
+ * ALPHA_OPAQUE_THRESHOLD and dropSmallSpecks above. Multi-part logos (an
+ * icon plus a separate wordmark, individual letters) keep every real piece.
  */
 export function extractPerimeter(
   data: Uint8ClampedArray,
@@ -145,7 +156,7 @@ export function extractPerimeter(
   for (let i = 0; i < n; i++) {
     opaque[i] = data[i * 4 + 3] > alphaThreshold ? 1 : 0
   }
-  const mask = largestComponentMask(opaque, width, height)
+  const mask = dropSmallSpecks(opaque, width, height)
 
   const rightEdge: Point[] = []
   const leftEdge: Point[] = []
