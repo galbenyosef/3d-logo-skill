@@ -1,4 +1,4 @@
-/* Design budget: 2 font families, 3 sizes, 3 weights, no bold. See lean-ui. */
+/* Design budget: 2 font families, 3 sizes, 2 weights (400/500 — nothing >= 600). See lean-ui. */
 :root {
   color-scheme: dark;
 
@@ -28,7 +28,6 @@
 
   --weight-normal: 400;
   --weight-medium: 500;
-  --weight-semibold: 600;
 
   --radius-control: 8px;
   --radius-container: 14px;
@@ -120,7 +119,7 @@ a {
 
 .brand {
   font-size: var(--text-heading);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
   letter-spacing: -0.01em;
 }
 
