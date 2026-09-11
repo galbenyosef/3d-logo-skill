@@ -105,13 +105,14 @@ If the logo already has a transparent background (actual PNG with alpha), skip t
 
 #### 2b. Perimeter extraction
 
-Scan the alpha channel row-by-row to find left and right edges of the opaque region. This traces the exact outline of the logo. **Do not test `alpha > 0`** — real logo images (especially AI-generated ones) often carry residual low-alpha noise from compression/dithering scattered across nominally-transparent regions, sometimes reaching alpha values in the dozens far from the actual artwork. A raw `> 0` test lets that noise drag the row-scan's left/right edges out toward the image border, producing a long stray spike in the outline that shows up as a flat strip sticking off the finished chrome rim. Threshold at a real opacity cutoff and keep only the largest connected opaque region, which also guards against an isolated fully-opaque speck (e.g. a watermark) doing the same thing:
+Scan the alpha channel row-by-row to find left and right edges of the opaque region. This traces the exact outline of the logo. **Do not test `alpha > 0`** — real logo images (especially AI-generated ones) often carry residual low-alpha noise from compression/dithering scattered across nominally-transparent regions, sometimes reaching alpha values in the dozens far from the actual artwork. A raw `> 0` test lets that noise drag the row-scan's left/right edges out toward the image border, producing a long stray spike in the outline that shows up as a flat strip sticking off the finished chrome rim. Threshold at a real opacity cutoff and drop tiny detached specks (a watermark, a stray bright pixel) that pass the threshold but sit outside the real logo shape — **do not just keep the single largest connected region**, since that would break a multi-part logo (an icon plus a separate wordmark, individual letters): keep every component that's at least `MIN_COMPONENT_RATIO` of the largest one's size, so real secondary pieces survive and only disproportionately tiny specks are dropped:
 
 ```tsx
 const ALPHA_OPAQUE_THRESHOLD = 128
+const MIN_COMPONENT_RATIO = 0.005 // components smaller than 0.5% of the largest are specks, not logo parts
 
-// Flood-fills 4-connected regions of `opaque` and keeps only the largest one.
-function largestComponentMask(opaque: Uint8Array, width: number, height: number): Uint8Array {
+// Flood-fills 4-connected regions of `opaque` and drops any component under MIN_COMPONENT_RATIO of the largest.
+function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uint8Array {
   const n = width * height
   const labels = new Int32Array(n).fill(-1)
   const sizes: number[] = []
@@ -135,9 +136,12 @@ function largestComponentMask(opaque: Uint8Array, width: number, height: number)
   }
   const result = new Uint8Array(n)
   if (sizes.length === 0) return result
-  let largestLabel = 0
-  for (let i = 1; i < sizes.length; i++) if (sizes[i] > sizes[largestLabel]) largestLabel = i
-  for (let i = 0; i < n; i++) if (labels[i] === largestLabel) result[i] = 1
+  const largestSize = Math.max(...sizes)
+  const minSize = largestSize * MIN_COMPONENT_RATIO
+  for (let i = 0; i < n; i++) {
+    const label = labels[i]
+    if (label !== -1 && sizes[label] >= minSize) result[i] = 1
+  }
   return result
 }
 
@@ -145,7 +149,7 @@ function extractPerimeter(data: Uint8ClampedArray, width: number, height: number
   const n = width * height
   const opaque = new Uint8Array(n)
   for (let i = 0; i < n; i++) opaque[i] = data[i * 4 + 3] > ALPHA_OPAQUE_THRESHOLD ? 1 : 0
-  const mask = largestComponentMask(opaque, width, height)
+  const mask = dropSmallSpecks(opaque, width, height)
 
   const rightEdge: [number, number][] = []
   const leftEdge: [number, number][] = []
@@ -368,7 +372,7 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 - **Check the actual file format** — `.png` files are sometimes JPEG internally. JPEG has no alpha, so transparency must always be generated from brightness.
 - **Normal maps MUST use `LinearSRGBColorSpace`** — setting `SRGBColorSpace` on a normal map gamma-corrects the direction vectors, producing incorrect lighting and a flat appearance.
 - **`preserveDrawingBuffer: true` enables screenshots** — without it, `toDataURL()` returns blank frames. Can be set to `false` for slightly better GPU performance if screenshots aren't needed.
-- **DO NOT test `alpha > 0` in `extractPerimeter`** — low-alpha compression/dithering noise in "transparent" regions will pass that test and drag the outline out toward the image border, producing a stray strip on the finished rim. Threshold at a real opacity cutoff and keep only the largest connected component.
+- **DO NOT test `alpha > 0` in `extractPerimeter`** — low-alpha compression/dithering noise in "transparent" regions will pass that test and drag the outline out toward the image border, producing a stray strip on the finished rim. Threshold at a real opacity cutoff and drop tiny detached specks (not just "keep the largest component" — a multi-part logo like an icon plus a separate wordmark has more than one real piece, and all of them must survive).
 
 ## Rim color customization
 
