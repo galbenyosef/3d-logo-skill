@@ -48,15 +48,112 @@ export function generateNormalMapData(colorData: Uint8ClampedArray, width: numbe
   return out
 }
 
-/** Row-by-row alpha scan tracing the logo's outline, then Laplacian-smoothed (SKILL.md 2b). */
-export function extractPerimeter(data: Uint8ClampedArray, width: number, height: number): Point[] {
+/**
+ * Real generated logos (these sample PNGs included) often carry residual
+ * low-alpha noise — compression/dithering artifacts — scattered across
+ * nominally-transparent regions, sometimes reaching alpha values in the
+ * dozens far from the actual artwork. A raw `alpha > 0` test (the naive
+ * version of this check) lets that noise drag the per-row scan's left/right
+ * edges out toward the image border, producing long stray spikes in the
+ * outline that show up as flat strips sticking off the chrome rim. Anything
+ * below "clearly more opaque than not" is treated as background.
+ */
+export const ALPHA_OPAQUE_THRESHOLD = 128
+
+/**
+ * Flood-fills 4-connected regions of `opaque` and keeps only the largest
+ * one. Guards against isolated specks (a watermark, a stray bright pixel)
+ * that pass the alpha threshold but sit outside the real logo shape.
+ */
+export function largestComponentMask(opaque: Uint8Array, width: number, height: number): Uint8Array {
+  const n = width * height
+  const labels = new Int32Array(n).fill(-1)
+  const sizes: number[] = []
+  const stack = new Int32Array(n)
+
+  for (let start = 0; start < n; start++) {
+    if (opaque[start] !== 1 || labels[start] !== -1) continue
+    const label = sizes.length
+    let size = 0
+    let stackLen = 0
+    stack[stackLen++] = start
+    labels[start] = label
+    while (stackLen > 0) {
+      const idx = stack[--stackLen]
+      size++
+      const x = idx % width
+      const y = (idx / width) | 0
+      if (x > 0) {
+        const left = idx - 1
+        if (opaque[left] === 1 && labels[left] === -1) {
+          labels[left] = label
+          stack[stackLen++] = left
+        }
+      }
+      if (x < width - 1) {
+        const right = idx + 1
+        if (opaque[right] === 1 && labels[right] === -1) {
+          labels[right] = label
+          stack[stackLen++] = right
+        }
+      }
+      if (y > 0) {
+        const up = idx - width
+        if (opaque[up] === 1 && labels[up] === -1) {
+          labels[up] = label
+          stack[stackLen++] = up
+        }
+      }
+      if (y < height - 1) {
+        const down = idx + width
+        if (opaque[down] === 1 && labels[down] === -1) {
+          labels[down] = label
+          stack[stackLen++] = down
+        }
+      }
+    }
+    sizes.push(size)
+  }
+
+  const result = new Uint8Array(n)
+  if (sizes.length === 0) return result
+
+  let largestLabel = 0
+  for (let i = 1; i < sizes.length; i++) {
+    if (sizes[i] > sizes[largestLabel]) largestLabel = i
+  }
+  for (let i = 0; i < n; i++) {
+    if (labels[i] === largestLabel) result[i] = 1
+  }
+  return result
+}
+
+/**
+ * Row-by-row alpha scan tracing the logo's outline, then Laplacian-smoothed
+ * (SKILL.md 2b). Pixels are only considered part of the logo if they clear
+ * `alphaThreshold` AND belong to the largest connected opaque region — see
+ * ALPHA_OPAQUE_THRESHOLD and largestComponentMask above.
+ */
+export function extractPerimeter(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  alphaThreshold = ALPHA_OPAQUE_THRESHOLD,
+): Point[] {
+  const n = width * height
+  const opaque = new Uint8Array(n)
+  for (let i = 0; i < n; i++) {
+    opaque[i] = data[i * 4 + 3] > alphaThreshold ? 1 : 0
+  }
+  const mask = largestComponentMask(opaque, width, height)
+
   const rightEdge: Point[] = []
   const leftEdge: Point[] = []
   for (let y = 0; y < height; y++) {
     let left = -1
     let right = -1
     for (let x = 0; x < width; x++) {
-      if (data[(y * width + x) * 4 + 3] > 0) {
+      if (mask[y * width + x] === 1) {
         if (left === -1) left = x
         right = x
       }

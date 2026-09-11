@@ -50,6 +50,12 @@ test.describe('3D logo skill demo', () => {
     await page.waitForTimeout(1000)
     await page.screenshot({ path: `${SCREENSHOT_DIR}/desktop-1440x900.png` })
 
+    // Mid-rotation frame: the coin spins continuously, so waiting a couple
+    // more seconds lands on an angled view where the rim profile is clearly
+    // visible (matches the reference orig-frames.png angled shot).
+    await page.waitForTimeout(3000)
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/desktop-angled-1440x900.png` })
+
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForTimeout(500)
     await page.screenshot({ path: `${SCREENSHOT_DIR}/mobile-390x844.png` })

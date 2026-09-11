@@ -4,6 +4,7 @@ import {
   extractPerimeter,
   generateNormalMapData,
   hasNativeAlpha,
+  largestComponentMask,
   pickRimPalette,
 } from './textureProcessing'
 
@@ -69,6 +70,56 @@ describe('extractPerimeter', () => {
 
   it('returns nothing for a fully transparent image', () => {
     expect(extractPerimeter(new Uint8ClampedArray(8 * 8 * 4), 8, 8)).toEqual([])
+  })
+
+  it('ignores a detached stray pixel far to the right of the main blob', () => {
+    // Regression test for the rim "stray strip" bug: a single fully-opaque
+    // pixel far outside the logo (e.g. a compression artifact or watermark
+    // speck) must not drag the row-scan's right edge out to it.
+    const width = 20
+    const height = 20
+    const data = new Uint8ClampedArray(width * height * 4)
+    for (let y = 5; y < 15; y++) {
+      for (let x = 3; x <= 7; x++) {
+        data[(y * width + x) * 4 + 3] = 255
+      }
+    }
+    // Detached stray pixel, far to the right, disconnected from the blob.
+    data[(2 * width + 18) * 4 + 3] = 255
+
+    const outline = extractPerimeter(data, width, height)
+    expect(outline.length).toBeGreaterThan(0)
+    for (const [x] of outline) {
+      // Blob spans columns 3-7 of 20 -> normalized x in roughly [-0.35, -0.15].
+      // The stray pixel at column 18 would normalize to about +0.4.
+      expect(x).toBeLessThan(0)
+    }
+  })
+})
+
+describe('largestComponentMask', () => {
+  it('keeps only the largest connected region', () => {
+    const width = 10
+    const height = 5
+    const opaque = new Uint8Array(width * height)
+    // Large blob: a 3x3 square.
+    for (let y = 1; y <= 3; y++) {
+      for (let x = 1; x <= 3; x++) {
+        opaque[y * width + x] = 1
+      }
+    }
+    // Small detached speck, far away.
+    opaque[1 * width + 9] = 1
+
+    const mask = largestComponentMask(opaque, width, height)
+    expect(mask[9]).toBe(0) // the speck (row 1, col 9) is dropped
+    expect(mask[2 * width + 2]).toBe(1) // center of the blob survives
+    expect(mask.reduce((a, b) => a + b, 0)).toBe(9) // exactly the 3x3 blob
+  })
+
+  it('returns an all-zero mask when there is nothing opaque', () => {
+    const mask = largestComponentMask(new Uint8Array(20), 5, 4)
+    expect(mask.reduce((a, b) => a + b, 0)).toBe(0)
   })
 })
 
