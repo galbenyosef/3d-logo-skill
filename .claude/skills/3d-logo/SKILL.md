@@ -105,16 +105,54 @@ If the logo already has a transparent background (actual PNG with alpha), skip t
 
 #### 2b. Perimeter extraction
 
-Scan the alpha channel row-by-row to find left and right edges of the opaque region. This traces the exact outline of the logo:
+Scan the alpha channel row-by-row to find left and right edges of the opaque region. This traces the exact outline of the logo. **Do not test `alpha > 0`** — real logo images (especially AI-generated ones) often carry residual low-alpha noise from compression/dithering scattered across nominally-transparent regions, sometimes reaching alpha values in the dozens far from the actual artwork. A raw `> 0` test lets that noise drag the row-scan's left/right edges out toward the image border, producing a long stray spike in the outline that shows up as a flat strip sticking off the finished chrome rim. Threshold at a real opacity cutoff and keep only the largest connected opaque region, which also guards against an isolated fully-opaque speck (e.g. a watermark) doing the same thing:
 
 ```tsx
+const ALPHA_OPAQUE_THRESHOLD = 128
+
+// Flood-fills 4-connected regions of `opaque` and keeps only the largest one.
+function largestComponentMask(opaque: Uint8Array, width: number, height: number): Uint8Array {
+  const n = width * height
+  const labels = new Int32Array(n).fill(-1)
+  const sizes: number[] = []
+  const stack = new Int32Array(n)
+  for (let start = 0; start < n; start++) {
+    if (opaque[start] !== 1 || labels[start] !== -1) continue
+    const label = sizes.length
+    let size = 0, stackLen = 0
+    stack[stackLen++] = start
+    labels[start] = label
+    while (stackLen > 0) {
+      const idx = stack[--stackLen]
+      size++
+      const x = idx % width, y = (idx / width) | 0
+      if (x > 0 && opaque[idx - 1] === 1 && labels[idx - 1] === -1) { labels[idx - 1] = label; stack[stackLen++] = idx - 1 }
+      if (x < width - 1 && opaque[idx + 1] === 1 && labels[idx + 1] === -1) { labels[idx + 1] = label; stack[stackLen++] = idx + 1 }
+      if (y > 0 && opaque[idx - width] === 1 && labels[idx - width] === -1) { labels[idx - width] = label; stack[stackLen++] = idx - width }
+      if (y < height - 1 && opaque[idx + width] === 1 && labels[idx + width] === -1) { labels[idx + width] = label; stack[stackLen++] = idx + width }
+    }
+    sizes.push(size)
+  }
+  const result = new Uint8Array(n)
+  if (sizes.length === 0) return result
+  let largestLabel = 0
+  for (let i = 1; i < sizes.length; i++) if (sizes[i] > sizes[largestLabel]) largestLabel = i
+  for (let i = 0; i < n; i++) if (labels[i] === largestLabel) result[i] = 1
+  return result
+}
+
 function extractPerimeter(data: Uint8ClampedArray, width: number, height: number) {
+  const n = width * height
+  const opaque = new Uint8Array(n)
+  for (let i = 0; i < n; i++) opaque[i] = data[i * 4 + 3] > ALPHA_OPAQUE_THRESHOLD ? 1 : 0
+  const mask = largestComponentMask(opaque, width, height)
+
   const rightEdge: [number, number][] = []
   const leftEdge: [number, number][] = []
   for (let y = 0; y < height; y++) {
     let left = -1, right = -1
     for (let x = 0; x < width; x++) {
-      if (data[(y * width + x) * 4 + 3] > 0) {
+      if (mask[y * width + x] === 1) {
         if (left === -1) left = x
         right = x
       }
@@ -330,6 +368,7 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 - **Check the actual file format** — `.png` files are sometimes JPEG internally. JPEG has no alpha, so transparency must always be generated from brightness.
 - **Normal maps MUST use `LinearSRGBColorSpace`** — setting `SRGBColorSpace` on a normal map gamma-corrects the direction vectors, producing incorrect lighting and a flat appearance.
 - **`preserveDrawingBuffer: true` enables screenshots** — without it, `toDataURL()` returns blank frames. Can be set to `false` for slightly better GPU performance if screenshots aren't needed.
+- **DO NOT test `alpha > 0` in `extractPerimeter`** — low-alpha compression/dithering noise in "transparent" regions will pass that test and drag the outline out toward the image border, producing a stray strip on the finished rim. Threshold at a real opacity cutoff and keep only the largest connected component.
 
 ## Rim color customization
 
