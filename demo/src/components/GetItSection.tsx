@@ -34,67 +34,69 @@ export function GetItSection() {
         Get it in your project
       </h2>
 
-      <div className="tabs">
-        <div className="tablist" role="tablist" aria-label="Install method">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              id={`install-tab-${tab.id}`}
-              type="button"
-              role="tab"
-              className="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls={`install-panel-${tab.id}`}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
-              onKeyDown={handleKeyDown}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div
-          id="install-panel-npx"
-          role="tabpanel"
-          aria-labelledby="install-tab-npx"
-          hidden={activeTab !== 'npx'}
-          className="tab-panel"
-        >
-          <div className="code-row">
-            <code className="code-block mono">{NPX_COMMAND}</code>
-            <CopyButton text={NPX_COMMAND} label="Copy command" />
+      <div className="get-it-grid">
+        <div className="tabs">
+          <div className="tablist" role="tablist" aria-label="Install method">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                id={`install-tab-${tab.id}`}
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`install-panel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={handleKeyDown}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <p className="tab-note">Auto-detects any agent that supports the Agent Skills spec — Cursor, Codex, Copilot, Gemini CLI, and 50+ more.</p>
-        </div>
 
-        <div
-          id="install-panel-claude"
-          role="tabpanel"
-          aria-labelledby="install-tab-claude"
-          hidden={activeTab !== 'claude'}
-          className="tab-panel"
-        >
-          <div className="code-row">
-            <code className="code-block mono">{MARKETPLACE_COMMAND}</code>
-            <CopyButton text={MARKETPLACE_COMMAND} label="Copy command" />
+          <div
+            id="install-panel-npx"
+            role="tabpanel"
+            aria-labelledby="install-tab-npx"
+            hidden={activeTab !== 'npx'}
+            className="tab-panel"
+          >
+            <div className="code-row">
+              <code className="code-block mono">{NPX_COMMAND}</code>
+              <CopyButton text={NPX_COMMAND} label="Copy command" />
+            </div>
+            <p className="tab-note">Auto-detects any agent that supports the Agent Skills spec — Cursor, Codex, Copilot, Gemini CLI, and 50+ more.</p>
           </div>
-          <div className="code-row">
-            <code className="code-block mono">{PLUGIN_INSTALL_COMMAND}</code>
-            <CopyButton text={PLUGIN_INSTALL_COMMAND} label="Copy command" />
+
+          <div
+            id="install-panel-claude"
+            role="tabpanel"
+            aria-labelledby="install-tab-claude"
+            hidden={activeTab !== 'claude'}
+            className="tab-panel"
+          >
+            <div className="code-row">
+              <code className="code-block mono">{MARKETPLACE_COMMAND}</code>
+              <CopyButton text={MARKETPLACE_COMMAND} label="Copy command" />
+            </div>
+            <div className="code-row">
+              <code className="code-block mono">{PLUGIN_INSTALL_COMMAND}</code>
+              <CopyButton text={PLUGIN_INSTALL_COMMAND} label="Copy command" />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="get-it-usage">
-        <p className="get-it-label">Then ask your agent:</p>
-        <div className="code-row">
-          <code className="code-block mono">{AGENT_PROMPT}</code>
-          <CopyButton text={AGENT_PROMPT} label="Copy prompt" />
+        <div className="get-it-usage">
+          <p className="get-it-label">Then ask your agent:</p>
+          <div className="code-row">
+            <code className="code-block mono">{AGENT_PROMPT}</code>
+            <CopyButton text={AGENT_PROMPT} label="Copy prompt" />
+          </div>
+
+          <p className="get-it-label">It generates a component you drop in:</p>
+          <pre className="code-block mono code-snippet">{USAGE_SNIPPET}</pre>
         </div>
-
-        <p className="get-it-label">It generates a component you drop in:</p>
-        <pre className="code-block mono code-snippet">{USAGE_SNIPPET}</pre>
       </div>
     </section>
   )

@@ -133,6 +133,7 @@ a {
   line-height: 1.15;
   letter-spacing: -0.01em;
   color: var(--text);
+  text-wrap: balance;
 }
 
 .hero-subline {
@@ -436,6 +437,20 @@ a {
   border-top: 1px solid var(--border);
 }
 
+.get-it-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .get-it-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 .tabs {
   max-width: 640px;
 }
@@ -490,26 +505,6 @@ a {
   gap: var(--space-2);
 }
 
-@media (max-width: 600px) {
-  .code-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .copy-btn {
-    justify-content: center;
-  }
-
-  /* Wrap long commands/prompts instead of clipping them at the viewport
-     edge — the copy button still copies the exact source string, which
-     never touches this display-only wrapping. */
-  .code-block {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    overflow-x: hidden;
-  }
-}
-
 .code-block {
   flex: 1;
   min-width: 0;
@@ -525,6 +520,27 @@ a {
 
 .code-snippet {
   margin: 0;
+}
+
+@media (max-width: 600px) {
+  .code-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .copy-btn {
+    justify-content: center;
+  }
+
+  /* Wrap long commands/prompts instead of clipping them at the viewport
+     edge — the copy button still copies the exact source string, which
+     never touches this display-only wrapping. Declared after the base
+     .code-block/.code-snippet rules so it actually wins the cascade. */
+  .code-block {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-x: hidden;
+  }
 }
 
 .copy-btn {
@@ -547,7 +563,6 @@ a {
 }
 
 .get-it-usage {
-  margin-top: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
