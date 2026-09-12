@@ -94,18 +94,36 @@ test.describe('3D logo skill demo', () => {
 
     const npxTab = page.getByRole('tab', { name: 'npx' })
     const claudeTab = page.getByRole('tab', { name: 'Claude Code' })
+    const npxCommand = page.getByText('npx skills add hasuwini77/3d-logo-skill')
+    const marketplaceCommand = page.getByText('claude plugin marketplace add hasuwini77/3d-logo-skill')
+    const pluginInstallCommand = page.getByText('claude plugin install 3d-logo@3d-logo-skill')
+
+    // With "npx" selected, only its command is visible — the Claude Code
+    // panel's commands must be genuinely hidden, not just visually stacked.
     await expect(npxTab).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByText('npx skills add hasuwini77/3d-logo-skill')).toBeVisible()
+    await expect(npxCommand).toBeVisible()
+    await expect(marketplaceCommand).toBeHidden()
+    await expect(pluginInstallCommand).toBeHidden()
 
     await claudeTab.click()
     await expect(claudeTab).toHaveAttribute('aria-selected', 'true')
     await expect(npxTab).toHaveAttribute('aria-selected', 'false')
-    await expect(page.getByText('claude plugin marketplace add hasuwini77/3d-logo-skill')).toBeVisible()
+    await expect(marketplaceCommand).toBeVisible()
+    await expect(pluginInstallCommand).toBeVisible()
+    await expect(npxCommand).toBeHidden()
 
     // Keyboard operability: ArrowLeft from the Claude Code tab returns to npx.
     await claudeTab.focus()
     await page.keyboard.press('ArrowLeft')
     await expect(npxTab).toHaveAttribute('aria-selected', 'true')
+    await expect(npxCommand).toBeVisible()
+    await expect(marketplaceCommand).toBeHidden()
+
+    // Same hidden-panel behavior holds at mobile widths, not just desktop.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(npxCommand).toBeVisible()
+    await expect(marketplaceCommand).toBeHidden()
+    await expect(pluginInstallCommand).toBeHidden()
 
     const copyButtons = page.locator('.copy-btn')
     expect(await copyButtons.count()).toBeGreaterThanOrEqual(3)

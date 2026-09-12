@@ -12,6 +12,10 @@ interface HeroProps {
   onTryLogo: () => void
 }
 
+// A count under 10 reads as anti-social-proof — better to show no count at
+// all than to advertise a small one.
+const MIN_STARS_TO_SHOW = 10
+
 export function Hero({ onTryLogo }: HeroProps) {
   const stars = useGithubStars(REPO)
 
@@ -33,7 +37,7 @@ export function Hero({ onTryLogo }: HeroProps) {
               fill="currentColor"
             />
           </svg>
-          Star on GitHub{stars !== null ? ` · ${formatStars(stars)}` : ''}
+          Star on GitHub{stars !== null && stars >= MIN_STARS_TO_SHOW ? ` · ${formatStars(stars)}` : ''}
         </a>
       </div>
     </header>

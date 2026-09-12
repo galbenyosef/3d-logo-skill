@@ -46,6 +46,13 @@
   box-sizing: border-box;
 }
 
+/* The `hidden` attribute must always win over a component's own display
+   rule (e.g. a flex/grid tab panel) — otherwise a panel stays visible while
+   "hidden" is present. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -247,7 +254,7 @@ a {
 .stage-pause {
   position: absolute;
   right: var(--space-3);
-  bottom: var(--space-3);
+  top: var(--space-3);
   width: 40px;
   height: 40px;
   display: flex;
