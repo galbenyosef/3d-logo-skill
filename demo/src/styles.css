@@ -22,9 +22,11 @@
   --font-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
-  --text-chrome: 12px;
-  --text-content: 15px;
-  --text-heading: 21px;
+  --text-small: 12px;
+  --text-body: 15px;
+  /* Reused by the hero h1 AND every section h2 — the budget is exactly 3
+     sizes, so hierarchy between them comes from color/spacing, not a 4th size. */
+  --text-display: clamp(1.75rem, 1.35rem + 1.8vw, 2.5rem);
 
   --weight-normal: 400;
   --weight-medium: 500;
@@ -54,7 +56,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: var(--text-content);
+  font-size: var(--text-body);
   font-weight: var(--weight-normal);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -109,24 +111,46 @@ a {
   margin: 0 auto;
 }
 
-.topbar {
+/* ---------- Hero ---------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 640px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: var(--text-display);
+  font-weight: var(--weight-medium);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.hero-subline {
+  margin: 0;
+  font-size: var(--text-body);
+  color: var(--text-dim);
+  max-width: 58ch;
+}
+
+.hero-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
 }
 
-.brand {
-  margin: 0;
-  font-size: var(--text-heading);
-  font-weight: var(--weight-medium);
-  letter-spacing: -0.01em;
+.hero-cta {
+  padding: var(--space-3) var(--space-5);
 }
 
-.topbar-actions {
-  display: flex;
-  flex-wrap: wrap;
+.hero-star {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-2);
 }
 
@@ -175,7 +199,7 @@ a {
 
 .stage-hint {
   margin: var(--space-4) 0 0;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-faint);
   text-align: center;
 }
@@ -190,7 +214,7 @@ a {
   border-radius: var(--radius-container);
   background: rgba(11, 14, 18, 0.72);
   color: var(--accent);
-  font-size: var(--text-content);
+  font-size: var(--text-body);
   font-weight: var(--weight-medium);
   pointer-events: none;
 }
@@ -248,14 +272,14 @@ a {
 }
 
 .control-label {
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   font-weight: var(--weight-medium);
   color: var(--text-dim);
 }
 
 .control-note {
   margin: 0;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-faint);
 }
 
@@ -274,7 +298,7 @@ a {
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   font-weight: var(--weight-normal);
   color: var(--text);
 }
@@ -313,7 +337,7 @@ a {
   border: 1px solid var(--border);
   background: var(--surface-raised);
   cursor: pointer;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   font-weight: var(--weight-medium);
   max-width: 100%;
 }
@@ -347,7 +371,7 @@ a {
 
 .status {
   margin: 0;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-dim);
   min-height: 1.5em;
 }
@@ -363,7 +387,7 @@ a {
 /* ---------- Footer ---------- */
 
 .footer {
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-faint);
   text-align: center;
 }

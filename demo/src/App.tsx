@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Hero } from './components/Hero'
 import { PauseToggle } from './components/PauseToggle'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
 import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets'
@@ -6,7 +7,6 @@ import { isAllowedImageType } from './lib/fileValidation'
 import { prepareUploadedLogo } from './lib/imagePipeline'
 import { PRESET_LOGOS, presetUrl } from './lib/presetLogos'
 
-const INSTALL_COMMAND = 'npx skills add hasuwini77/3d-logo-skill'
 const REPO_URL = 'https://github.com/hasuwini77/3d-logo-skill'
 
 type StatusKind = 'idle' | 'loading' | 'ready' | 'error'
@@ -48,7 +48,6 @@ export default function App() {
     message: `Showing the ${defaultLogo.label} sample. Drop your own logo anywhere on the stage.`,
   })
   const [isDraggingOver, setIsDraggingOver] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -118,29 +117,9 @@ export default function App() {
     if (e.currentTarget === e.target) setIsDraggingOver(false)
   }, [])
 
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(INSTALL_COMMAND)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      setStatus({ kind: 'error', message: 'Could not copy — select the command and copy it manually.' })
-    }
-  }, [])
-
   return (
     <div className="page">
-      <header className="topbar">
-        <h1 className="brand">3D Logo Skill</h1>
-        <div className="topbar-actions">
-          <button type="button" className="btn btn-ghost mono" onClick={() => void handleCopy()}>
-            {copied ? 'Copied!' : INSTALL_COMMAND}
-          </button>
-          <a className="btn btn-ghost" href={REPO_URL} target="_blank" rel="noreferrer">
-            View on GitHub
-          </a>
-        </div>
-      </header>
+      <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
       <main className="layout">
         <section
