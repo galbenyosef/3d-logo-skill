@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { PauseToggle } from './components/PauseToggle'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
 import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets'
 import { isAllowedImageType } from './lib/fileValidation'
@@ -48,9 +49,15 @@ export default function App() {
   })
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
+  // Reduced motion used to drop to 12% speed, which on the many iPhones that
+  // ship Reduce Motion on by default read as "broken", not "gentle" (issue #5).
+  // 50% keeps the coin legibly slower without looking stuck; the explicit
+  // pause control below is what actually satisfies WCAG 2.2.2 for this motion.
+  const spinMultiplier = isPaused ? 0 : reducedMotion ? 0.5 : 1
 
   const handlePreset = useCallback((file: string, label: string) => {
     setActiveLogo({ url: presetUrl(file), label, isUpload: false })
@@ -144,8 +151,9 @@ export default function App() {
           aria-label={`3D preview: ${activeLogo.label}`}
         >
           <div className="stage-canvas" aria-hidden="true">
-            <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={reducedMotion ? 0.12 : 1} />
+            <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
           </div>
+          <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
           <p className="stage-hint">Drag any logo here — it never leaves your browser</p>
           {isDraggingOver && (
             <div className="stage-overlay" aria-hidden="true">
