@@ -364,6 +364,9 @@ a {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
@@ -444,6 +447,9 @@ a {
 }
 
 .tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
@@ -484,7 +490,7 @@ a {
   gap: var(--space-2);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .code-row {
     flex-direction: column;
     align-items: stretch;
@@ -492,6 +498,15 @@ a {
 
   .copy-btn {
     justify-content: center;
+  }
+
+  /* Wrap long commands/prompts instead of clipping them at the viewport
+     edge — the copy button still copies the exact source string, which
+     never touches this display-only wrapping. */
+  .code-block {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-x: hidden;
   }
 }
 
@@ -510,7 +525,6 @@ a {
 
 .code-snippet {
   margin: 0;
-  white-space: pre;
 }
 
 .copy-btn {
@@ -605,6 +619,25 @@ a {
 
 .footer p {
   margin: 0;
+}
+
+/* ---------- Touch targets ---------- */
+
+/* WCAG 2.5.5 / Apple & Material guidance: interactive controls want >=44px
+   on touch input, or on narrow screens where fingers (not a mouse) are the
+   likely pointer even if the device reports "fine". */
+@media (pointer: coarse), (max-width: 600px) {
+  .btn,
+  .tab,
+  .preset-btn,
+  .copy-btn {
+    min-height: 44px;
+  }
+
+  .stage-pause {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* ---------- Motion ---------- */
