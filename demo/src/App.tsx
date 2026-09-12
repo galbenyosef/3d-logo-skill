@@ -218,12 +218,10 @@ export default function App() {
 
       <footer className="footer">
         <p>
-          Built from the open-source{' '}
-          <a href={REPO_URL} target="_blank" rel="noreferrer">
-            3d-logo-skill
+          MIT licence · <a href={REPO_URL} target="_blank" rel="noreferrer">3d-logo-skill on GitHub</a> · Built by{' '}
+          <a href="https://github.com/hasuwini77" target="_blank" rel="noreferrer">
+            hasuwini77
           </a>
-          , an installable skill for Claude Code, Cursor, Copilot, and 50+ other agents. If this saved you time, drop
-          a star.
         </p>
       </footer>
     </div>
