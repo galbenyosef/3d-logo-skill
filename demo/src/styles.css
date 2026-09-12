@@ -412,6 +412,126 @@ a {
   color: var(--accent);
 }
 
+/* ---------- Section titles (shared) ---------- */
+
+.section-title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-display);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* ---------- Get it in your project ---------- */
+
+.get-it {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--border);
+}
+
+.tabs {
+  max-width: 640px;
+}
+
+.tablist {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-body);
+  font-weight: var(--weight-normal);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--accent-ink);
+  border-color: var(--accent-strong);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tab-note {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--text-faint);
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.code-block {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--text);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code-snippet {
+  margin: 0;
+  white-space: pre;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-small);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.get-it-usage {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 640px;
+}
+
+.get-it-label {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--text-dim);
+}
+
 /* ---------- Footer ---------- */
 
 .footer {

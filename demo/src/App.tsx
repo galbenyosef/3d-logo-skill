@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { GetItSection } from './components/GetItSection'
 import { Hero } from './components/Hero'
 import { PauseToggle } from './components/PauseToggle'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
@@ -209,6 +210,8 @@ export default function App() {
           </p>
         </aside>
       </main>
+
+      <GetItSection />
 
       <footer className="footer">
         <p>
