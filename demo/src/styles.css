@@ -22,9 +22,11 @@
   --font-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
-  --text-chrome: 12px;
-  --text-content: 15px;
-  --text-heading: 21px;
+  --text-small: 12px;
+  --text-body: 15px;
+  /* Reused by the hero h1 AND every section h2 — the budget is exactly 3
+     sizes, so hierarchy between them comes from color/spacing, not a 4th size. */
+  --text-display: clamp(1.75rem, 1.35rem + 1.8vw, 2.5rem);
 
   --weight-normal: 400;
   --weight-medium: 500;
@@ -44,6 +46,13 @@
   box-sizing: border-box;
 }
 
+/* The `hidden` attribute must always win over a component's own display
+   rule (e.g. a flex/grid tab panel) — otherwise a panel stays visible while
+   "hidden" is present. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -54,7 +63,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: var(--text-content);
+  font-size: var(--text-body);
   font-weight: var(--weight-normal);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -98,10 +107,8 @@ a {
 /* ---------- Layout ---------- */
 
 .page {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
   padding: var(--space-4) var(--space-4) var(--space-6);
   gap: var(--space-5);
   max-width: 1200px;
@@ -109,24 +116,47 @@ a {
   margin: 0 auto;
 }
 
-.topbar {
+/* ---------- Hero ---------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 640px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: var(--text-display);
+  font-weight: var(--weight-medium);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.hero-subline {
+  margin: 0;
+  font-size: var(--text-body);
+  color: var(--text-dim);
+  max-width: 58ch;
+}
+
+.hero-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
 }
 
-.brand {
-  margin: 0;
-  font-size: var(--text-heading);
-  font-weight: var(--weight-medium);
-  letter-spacing: -0.01em;
+.hero-cta {
+  padding: var(--space-3) var(--space-5);
 }
 
-.topbar-actions {
-  display: flex;
-  flex-wrap: wrap;
+.hero-star {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-2);
 }
 
@@ -134,7 +164,6 @@ a {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-5);
-  flex: 1;
 }
 
 @media (min-width: 880px) {
@@ -175,7 +204,7 @@ a {
 
 .stage-hint {
   margin: var(--space-4) 0 0;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-faint);
   text-align: center;
 }
@@ -190,9 +219,63 @@ a {
   border-radius: var(--radius-container);
   background: rgba(11, 14, 18, 0.72);
   color: var(--accent);
-  font-size: var(--text-content);
+  font-size: var(--text-body);
   font-weight: var(--weight-medium);
   pointer-events: none;
+}
+
+.stage-thumb {
+  position: absolute;
+  left: var(--space-3);
+  top: var(--space-3);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(20, 24, 30, 0.85);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+}
+
+.stage-thumb img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: #05070a;
+  object-fit: contain;
+}
+
+.stage-thumb figcaption {
+  font-size: var(--text-small);
+  color: var(--text-faint);
+}
+
+.stage-pause {
+  position: absolute;
+  right: var(--space-3);
+  top: var(--space-3);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 24, 30, 0.85);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.stage-pause:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.stage-pause[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* ---------- Controls ---------- */
@@ -222,14 +305,14 @@ a {
 }
 
 .control-label {
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   font-weight: var(--weight-medium);
   color: var(--text-dim);
 }
 
 .control-note {
   margin: 0;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-faint);
 }
 
@@ -248,7 +331,7 @@ a {
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   font-weight: var(--weight-normal);
   color: var(--text);
 }
@@ -282,12 +365,15 @@ a {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
   background: var(--surface-raised);
   cursor: pointer;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   font-weight: var(--weight-medium);
   max-width: 100%;
 }
@@ -321,7 +407,7 @@ a {
 
 .status {
   margin: 0;
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-dim);
   min-height: 1.5em;
 }
@@ -334,16 +420,239 @@ a {
   color: var(--accent);
 }
 
+/* ---------- Section titles (shared) ---------- */
+
+.section-title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-display);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* ---------- Get it in your project ---------- */
+
+.get-it {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--border);
+}
+
+.get-it-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .get-it-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.tabs {
+  max-width: 640px;
+}
+
+.tablist {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-body);
+  font-weight: var(--weight-normal);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--accent-ink);
+  border-color: var(--accent-strong);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tab-note {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--text-faint);
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.code-block {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--text);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code-snippet {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .code-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .copy-btn {
+    justify-content: center;
+  }
+
+  /* Wrap long commands/prompts instead of clipping them at the viewport
+     edge — the copy button still copies the exact source string, which
+     never touches this display-only wrapping. Declared after the base
+     .code-block/.code-snippet rules so it actually wins the cascade. */
+  .code-block {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-x: hidden;
+  }
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-small);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.get-it-usage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 640px;
+}
+
+.get-it-label {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--text-dim);
+}
+
+/* ---------- How it works ---------- */
+
+.how {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--border);
+}
+
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+.how-step {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.how-step-index {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--text-dim);
+}
+
+.how-step-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.how-step-body {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--text-faint);
+}
+
 /* ---------- Footer ---------- */
 
 .footer {
-  font-size: var(--text-chrome);
+  font-size: var(--text-small);
   color: var(--text-faint);
   text-align: center;
 }
 
 .footer p {
   margin: 0;
+}
+
+/* ---------- Touch targets ---------- */
+
+/* WCAG 2.5.5 / Apple & Material guidance: interactive controls want >=44px
+   on touch input, or on narrow screens where fingers (not a mouse) are the
+   likely pointer even if the device reports "fine". */
+@media (pointer: coarse), (max-width: 600px) {
+  .btn,
+  .tab,
+  .preset-btn,
+  .copy-btn {
+    min-height: 44px;
+  }
+
+  .stage-pause {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* ---------- Motion ---------- */
