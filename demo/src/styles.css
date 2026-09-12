@@ -532,6 +532,54 @@ a {
   color: var(--text-dim);
 }
 
+/* ---------- How it works ---------- */
+
+.how {
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--border);
+}
+
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+.how-step {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.how-step-index {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--text-dim);
+}
+
+.how-step-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.how-step-body {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--text-faint);
+}
+
 /* ---------- Footer ---------- */
 
 .footer {

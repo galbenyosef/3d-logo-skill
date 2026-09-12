@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GetItSection } from './components/GetItSection'
 import { Hero } from './components/Hero'
+import { HowItWorks } from './components/HowItWorks'
 import { PauseToggle } from './components/PauseToggle'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
 import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets'
@@ -212,6 +213,8 @@ export default function App() {
       </main>
 
       <GetItSection />
+
+      <HowItWorks />
 
       <footer className="footer">
         <p>
