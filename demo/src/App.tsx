@@ -132,6 +132,10 @@ export default function App() {
           <div className="stage-canvas" aria-hidden="true">
             <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
           </div>
+          <figure className="stage-thumb">
+            <img src={activeLogo.url} alt="" width={40} height={40} />
+            <figcaption>Your PNG</figcaption>
+          </figure>
           <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
           <p className="stage-hint">Drag any logo here — it never leaves your browser</p>
           {isDraggingOver && (

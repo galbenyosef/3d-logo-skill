@@ -219,6 +219,34 @@ a {
   pointer-events: none;
 }
 
+.stage-thumb {
+  position: absolute;
+  left: var(--space-3);
+  top: var(--space-3);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(20, 24, 30, 0.85);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+}
+
+.stage-thumb img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: #05070a;
+  object-fit: contain;
+}
+
+.stage-thumb figcaption {
+  font-size: var(--text-small);
+  color: var(--text-faint);
+}
+
 .stage-pause {
   position: absolute;
   right: var(--space-3);
