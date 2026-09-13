@@ -1,38 +1,57 @@
-/* Design budget: 2 font families, 3 sizes, 2 weights (400/500 — nothing >= 600). See lean-ui. */
+/* Wipeout livery — Designers Republic-style racing graphics for an
+   anti-gravity-coin demo. Design budget (frozen contract, shared with a
+   sibling project): 2 font families, 3 sizes, 2 weights actually in use
+   (400/500 — nothing >= 600). See lean-ui + .impeccable.md. */
 :root {
   color-scheme: dark;
 
-  --bg: #0b0e12;
-  --bg-vignette: radial-gradient(ellipse at center, #12161c 0%, #0b0e12 70%);
-  --surface: #14181e;
-  --surface-raised: #191e25;
-  --border: #262c35;
-  --border-strong: #333a45;
-  --text: #e8eaed;
-  --text-dim: #949aa5;
-  --text-faint: #7d8490;
-  --accent: #6dcbe8;
-  --accent-strong: #06b6d4;
-  --accent-ink: #04222a;
-  --danger: #e68e8e;
-  --danger-ink: #2a1414;
+  --bg: #0b0b0d;
+  /* Faint registration-grid dots over the base black, like a print sheet's
+     alignment grid — texture without touching the frozen background hex. */
+  --bg-vignette:
+    radial-gradient(circle, rgba(242, 240, 230, 0.06) 1px, transparent 1.5px) 0 0 / 28px 28px,
+    var(--bg);
+  --surface: #151518;
+  --surface-raised: #1c1c21;
+  --border: #2a2a30;
+  --border-strong: #3d3d46;
+  --text: #f2f0e6;
+  --text-dim: #9a988f;
+  --text-faint: #6c6a62;
+  --accent: #ffe14d;
+  /* --accent-strong is the legacy alias — every new rule should reach for
+     --accent-2 directly. Kept until the cleanup pass removes the last use. */
+  --accent-strong: #2ee6ff;
+  --accent-2: #2ee6ff;
+  --accent-ink: #0b0b0d;
+  --accent-2-ink: #05191c;
+  --danger: #ff6b57;
+  --danger-ink: #2a1310;
 
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  /* Display face: wide, geometric, all-caps only — headings + huge section
+     numerals. Body/UI/code face: JetBrains Mono, self-hosted (see main.tsx),
+     no Google Fonts requests. */
+  --font-sans: 'Michroma', 'Arial Narrow', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --text-small: 12px;
+  --text-small: 11px;
   --text-body: 15px;
-  /* Reused by the hero h1 AND every section h2 — the budget is exactly 3
-     sizes, so hierarchy between them comes from color/spacing, not a 4th size. */
-  --text-display: clamp(1.75rem, 1.35rem + 1.8vw, 2.5rem);
+  /* Reused by the hero h1, every section h2, AND the giant section numerals —
+     the budget is exactly 3 sizes, so a numeral gets its "huge" read from
+     stroke-only rendering and layout, not a 4th size token. */
+  --text-display: clamp(2.25rem, 1.5rem + 3.2vw, 4.5rem);
 
   --weight-normal: 400;
   --weight-medium: 500;
 
-  --radius-control: 8px;
-  --radius-container: 14px;
+  /* Chamfered (cut-corner) silhouette replaces rounded corners everywhere.
+     Two sizes only, matching the radius budget it replaces. */
+  --chamfer-sm: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  --chamfer-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  --radius-control: 0;
+  --radius-container: 0;
+
+  --hazard: repeating-linear-gradient(135deg, var(--accent) 0 14px, var(--bg) 14px 28px);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -40,6 +59,8 @@
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
 }
 
 * {
@@ -60,12 +81,14 @@ body {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--bg-vignette);
   color: var(--text);
-  font-family: var(--font-sans);
+  /* JetBrains Mono is the body/UI/code face — Michroma (--font-sans) is
+     reserved for display headings and micro-labels only. */
+  font-family: var(--font-mono);
   font-size: var(--text-body);
   font-weight: var(--weight-normal);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -83,7 +106,7 @@ select {
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-2);
 }
 
 .visually-hidden {
@@ -99,9 +122,15 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-2);
   outline-offset: 2px;
-  border-radius: var(--radius-control);
+}
+
+/* clip-path clips its own outline along with the box, so an outside ring on
+   a chamfered element is invisible on the two cut corners. Every chamfered
+   interactive element gets the `.chamfer` class and an inset ring instead. */
+.chamfer:focus-visible {
+  outline-offset: -4px;
 }
 
 /* ---------- Layout ---------- */
