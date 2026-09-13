@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { parseObjectPosition, SUN_IMAGE_UV_LANDSCAPE, SUN_IMAGE_UV_PORTRAIT, SUN_RADIUS_RATIO } from '../lib/coverUv'
+import {
+  parseObjectPosition,
+  SUN_IMAGE_UV_LANDSCAPE,
+  SUN_IMAGE_UV_PORTRAIT,
+  SUN_RADIUS_RATIO,
+  SUN_RADIUS_RATIO_PORTRAIT,
+} from '../lib/coverUv'
 
 // Full-screen triangle in clip space — one draw call, no index/vertex-count
 // bookkeeping, and no seam down the middle a quad's two triangles would need
@@ -86,14 +92,18 @@ void main() {
   // ---- cloud weighting: displacement leans toward the lower (cloud) band. ----
   float cloudWeight = mix(0.4, 1.0, smoothstep(0.35, 0.75, imageUv.y));
 
+  // Pixel speed ~= amplitude * noise speed * rendered width: 0.01 * 0.2 on a
+  // ~1600px-wide cover render is ~3px/s — visibly alive, still calm air.
   float t = u_time;
-  vec2 flowA = vec2(fbm(imageUv * 3.0 + t * 0.015), fbm(imageUv * 3.0 + 11.0 + t * 0.015 * 0.8)) - 0.5;
-  vec2 flowB = vec2(fbm(imageUv * 5.0 - t * 0.025), fbm(imageUv * 5.0 + 31.0 - t * 0.025 * 0.7)) - 0.5;
+  vec2 flowA = vec2(fbm(imageUv * 3.0 + t * 0.2), fbm(imageUv * 3.0 + 11.0 + t * 0.16)) - 0.5;
+  vec2 flowB = vec2(fbm(imageUv * 5.0 - t * 0.28), fbm(imageUv * 5.0 + 31.0 - t * 0.2)) - 0.5;
   vec2 displacement = flowA * 0.6 + flowB * 0.4;
   displacement.y *= 0.35; // mostly horizontal
-  displacement.x += sin(t * 0.05 + imageUv.y * 6.0) * 0.0012;
+  displacement *= 0.01;
+  // A slow sideways sway on top, like a steady breeze leaning on the tops.
+  displacement.x += sin(t * 0.4 + imageUv.y * 5.0) * 0.003;
 
-  displacement *= 0.0035 * sunMask * cloudWeight;
+  displacement *= sunMask * cloudWeight;
 
   vec2 sampleUv = clamp(imageUv + displacement, vec2(0.0), vec2(1.0));
   gl_FragColor = texture2D(u_texture, sampleUv);
@@ -190,7 +200,10 @@ export function SkyBreeze({ imgRef, ready }: SkyBreezeProps) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+    // No UNPACK_FLIP_Y: v_uv and coverUv.ts are y-down, and an unflipped
+    // upload already puts the image's top row at t=0. Flipping here drew the
+    // painting upside down.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
 
     let destroyed = false
     let uploadedOnce = false
@@ -278,7 +291,7 @@ export function SkyBreeze({ imgRef, ready }: SkyBreezeProps) {
       gl.uniform2f(u_imageSize, img.naturalWidth || 1, img.naturalHeight || 1)
       gl.uniform2f(u_objectPosition, objectPosition.x, objectPosition.y)
       gl.uniform2f(u_sunUv, sunUv.x, sunUv.y)
-      gl.uniform1f(u_sunRadius, SUN_RADIUS_RATIO)
+      gl.uniform1f(u_sunRadius, isPortrait ? SUN_RADIUS_RATIO_PORTRAIT : SUN_RADIUS_RATIO)
       gl.uniform1f(u_time, t)
 
       gl.drawArrays(gl.TRIANGLES, 0, 3)

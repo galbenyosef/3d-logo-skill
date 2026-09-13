@@ -30,8 +30,13 @@ export const SUN_IMAGE_UV_LANDSCAPE: UV = { x: 0.645, y: 0.635 }
 /** Painted sun disc centre in the portrait plate's own image-space uv — horizontally centred. */
 export const SUN_IMAGE_UV_PORTRAIT: UV = { x: 0.5, y: 0.635 }
 
-/** Painted sun disc radius, as a fraction of the image's width (both plates). */
+/** Painted sun disc radius, as a fraction of the landscape plate's width. */
 export const SUN_RADIUS_RATIO = 0.155
+
+/** The same disc as a fraction of the portrait plate's width: that crop is
+    half the source height wide (5504x3072 source -> 1536 wide), so the
+    identical disc covers 5504/1536 times more of it. */
+export const SUN_RADIUS_RATIO_PORTRAIT = SUN_RADIUS_RATIO * (5504 / 1536)
 
 /** Picks the right sun uv for whichever plate `image` describes (landscape vs portrait). */
 export function sunImageUvFor(image: Size): UV {
