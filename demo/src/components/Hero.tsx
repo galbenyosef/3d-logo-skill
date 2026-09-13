@@ -24,10 +24,10 @@ export function Hero({ onTryLogo }: HeroProps) {
       <p className="dr-label">
         <span className="dr-accent">3D-LOGO</span> // AG-SYS 01 — COIN FORGE
       </p>
-      <h1 className="hero-title">Turn any flat logo into a 3D spinning coin</h1>
+      <h1 className="hero-title">Flat logo in. 3D coin out.</h1>
       <p className="hero-subline">
-        An agent skill for Claude Code, Cursor, Codex, Copilot, Gemini CLI, and 50+ more agents — one prompt does the
-        rest.
+        An agent skill that turns any flat logo into a 3D spinning coin — for Claude Code, Cursor, Codex, Copilot,
+        Gemini CLI and 50+ more agents.
       </p>
       <div className="hero-actions">
         <button type="button" className="btn btn-primary chamfer hero-cta" onClick={onTryLogo}>

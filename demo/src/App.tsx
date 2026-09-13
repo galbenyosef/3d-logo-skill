@@ -133,63 +133,55 @@ export default function App() {
       </div>
       <div className="top-hazard" aria-hidden="true" />
       <div className="page">
-        <Hero onTryLogo={() => fileInputRef.current?.click()} />
+        <div className="hero-grid">
+          <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
-      <div className="section-head">
-        <span className="section-numeral" aria-hidden="true">01</span>
-        <div className="section-head-text">
-          <span className="dr-label">LIVE RIG // PIT-LANE TELEMETRY</span>
-          <h2 className="section-title">Spin it</h2>
-        </div>
-        <span className="section-head-rule" aria-hidden="true" />
-      </div>
+          <section
+            className={`stage chamfer-lg${isDraggingOver ? ' stage-dragging' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            aria-label={`3D preview: ${activeLogo.label}`}
+          >
+            <span className="corner-bracket corner-bracket--hud tl" aria-hidden="true" />
+            <span className="corner-bracket corner-bracket--hud tr" aria-hidden="true" />
+            <span className="corner-bracket corner-bracket--hud bl" aria-hidden="true" />
+            <span className="corner-bracket corner-bracket--hud br" aria-hidden="true" />
 
-      <main className="layout">
-        <section
-          className={`stage chamfer-lg${isDraggingOver ? ' stage-dragging' : ''}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          aria-label={`3D preview: ${activeLogo.label}`}
-        >
-          <span className="corner-bracket corner-bracket--hud tl" aria-hidden="true" />
-          <span className="corner-bracket corner-bracket--hud tr" aria-hidden="true" />
-          <span className="corner-bracket corner-bracket--hud bl" aria-hidden="true" />
-          <span className="corner-bracket corner-bracket--hud br" aria-hidden="true" />
-
-          <div className="stage-canvas" aria-hidden="true">
-            <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
-          </div>
-
-          <figure className="stage-thumb hud-chip">
-            <img src={activeLogo.url} alt="" width={28} height={28} />
-            <figcaption>{activeLogo.isUpload ? activeLogo.label : `FILE // ${activeLogo.label}`}</figcaption>
-          </figure>
-
-          <div className="stage-hud-top-right">
-            <span className="hud-chip" aria-hidden="true">
-              ENV // {envPreset.toUpperCase()}
-            </span>
-            <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
-          </div>
-
-          <span className="hud-chip stage-hud-bl" aria-hidden="true">
-            SPIN // {isPaused ? 'PAUSED' : reducedMotion ? '0.5X · REDUCED' : '1.0X'}
-          </span>
-
-          <span className="hud-chip hud-chip--accent stage-hud-br" aria-hidden="true">
-            LOCAL ONLY
-          </span>
-
-          <p className="stage-hint">Drag any logo here — it never leaves your browser</p>
-          {isDraggingOver && (
-            <div className="stage-overlay" aria-hidden="true">
-              Drop to use this logo
+            <div className="stage-canvas" aria-hidden="true">
+              <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
             </div>
-          )}
-        </section>
 
-        <aside className="controls chamfer-lg">
+            <figure className="stage-thumb hud-chip">
+              <img src={activeLogo.url} alt="" width={28} height={28} />
+              <figcaption>{activeLogo.isUpload ? activeLogo.label : `FILE // ${activeLogo.label}`}</figcaption>
+            </figure>
+
+            <div className="stage-hud-top-right">
+              <span className="hud-chip" aria-hidden="true">
+                ENV // {envPreset.toUpperCase()}
+              </span>
+              <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
+            </div>
+
+            <span className="hud-chip stage-hud-bl" aria-hidden="true">
+              SPIN // {isPaused ? 'PAUSED' : reducedMotion ? '0.5X · REDUCED' : '1.0X'}
+            </span>
+
+            <span className="hud-chip hud-chip--accent stage-hud-br" aria-hidden="true">
+              LOCAL ONLY
+            </span>
+
+            <p className="stage-hint">Drag any logo here — it never leaves your browser</p>
+            {isDraggingOver && (
+              <div className="stage-overlay" aria-hidden="true">
+                Drop to use this logo
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className="pit-board chamfer-lg">
           <div className="control-group">
             <span className="control-label" id="presets-label">
               <span className="chevron-row" aria-hidden="true">
@@ -265,7 +257,6 @@ export default function App() {
             {status.message}
           </p>
         </aside>
-      </main>
 
       <GetItSection />
 

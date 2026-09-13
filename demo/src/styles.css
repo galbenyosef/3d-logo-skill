@@ -362,16 +362,20 @@ a {
   gap: var(--space-2);
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-5);
+/* Hero + live stage: one column stacked (stage right after the CTAs) below
+   1024px, side-by-side above it so the coin is never scrolled past. */
+.hero-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
-@media (min-width: 880px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) 320px;
-    align-items: start;
+@media (min-width: 1024px) {
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-7);
   }
 }
 
@@ -381,14 +385,17 @@ a {
   position: relative;
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--border);
-  min-height: 460px;
+  min-height: 380px;
   min-width: 0; /* grid items default to min-width:auto, which would let the
                    canvas's intrinsic size block the track from shrinking */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-6) var(--space-5) var(--space-5);
+  /* Bottom padding has to clear the SPIN/LOCAL ONLY badges, which are
+     absolutely positioned against the padding edge (not the content box) —
+     on a short mobile frame the hint text was landing right on top of them. */
+  padding: var(--space-4) var(--space-4) var(--space-8);
   transition: box-shadow 0.15s ease;
 }
 
@@ -398,7 +405,7 @@ a {
 
 .stage-canvas {
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
   min-width: 0;
   aspect-ratio: 1 / 1;
 }
@@ -536,23 +543,29 @@ a {
   outline-offset: -4px;
 }
 
-/* ---------- Controls ---------- */
+/* ---------- Pit-board: horizontal controls strip ---------- */
 
-.controls {
+/* A pit-board, not a sidebar — the stage now lives in the hero, so its
+   controls run as a full-width strip underneath instead of a fixed-width
+   column beside it. Each group is a flexible column that wraps to its own
+   row once the strip gets too narrow to hold three side by side. */
+.pit-board {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5) var(--space-6);
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--border);
-  padding: var(--space-5) var(--space-4);
+  padding: var(--space-5);
 }
 
-@media (min-width: 880px) {
-  .controls {
-    position: sticky;
-    top: var(--space-4);
-  }
+.pit-board .control-group {
+  flex: 1 1 220px;
+  min-width: 220px;
+}
+
+.pit-board .status {
+  flex-basis: 100%;
 }
 
 .control-group {
