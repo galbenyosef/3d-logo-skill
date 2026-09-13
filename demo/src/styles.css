@@ -138,12 +138,14 @@ a {
   outline-offset: 2px;
 }
 
-/* ---------- Sky: crisp horizon, scoped to screen 1 ----------
+/* ---------- Sky: painted dusk plate, scoped to screen 1 ----------
    A normal (non-fixed) absolutely-positioned layer sized to screen 1's own
    box — this is what makes the transition into screen 2 seamless: both are
    ordinary document content, not a viewport-fixed backdrop that would show
-   a fresh gradient at every scroll position. Layer order back to front:
-   gradient (below) -> vignette -> stars -> sun -> 3 cloud banks -> grain. */
+   a fresh gradient at every scroll position. The gradient below (frozen
+   tokens, unchanged) is the first-paint fallback before the plate image has
+   loaded — see Sky.tsx. Layer order back to front: gradient (below) ->
+   plate img -> breeze canvas -> vignette -> bottom fade. */
 .sky {
   position: absolute;
   inset: 0;
@@ -162,8 +164,9 @@ a {
 
 /* The hand-painted plate itself (Sky.tsx's <picture>/<img>) — fills .sky via
    object-fit: cover, fading in over the gradient fallback above once loaded.
-   object-position tuned so the painted sun lands near the coin (~66-68%
-   across on desktop) at 1440x900 and 1280x720. */
+   See lib/coverUv.ts for the cover + object-position math the breeze shader
+   mirrors. object-position tuned so the painted sun lands near the coin
+   (~66-68% across on desktop) at 1440x900 and 1280x720. */
 .sky-plate {
   position: absolute;
   inset: 0;
@@ -176,6 +179,23 @@ a {
 }
 
 .sky-plate-loaded {
+  opacity: 1;
+}
+
+/* The breeze cinemagraph canvas (SkyBreeze.tsx) — sits exactly over the
+   plate, fading in only once its first frame is drawn so the swap from
+   static img to shader has no visible pop. Absent entirely under reduced
+   motion / no WebGL / a texture load failure (the static plate stays). */
+.sky-breeze {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.sky-breeze-visible {
   opacity: 1;
 }
 

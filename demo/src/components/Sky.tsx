@@ -4,6 +4,7 @@ import platePortrait1200 from '../assets/sky/plate-portrait-1200.webp'
 import plate1600 from '../assets/sky/plate-1600.webp'
 import plate2400 from '../assets/sky/plate-2400.webp'
 import plate3200 from '../assets/sky/plate-3200.webp'
+import { SkyBreeze } from './SkyBreeze'
 
 const LANDSCAPE_SRCSET = `${plate1600} 1600w, ${plate2400} 2400w, ${plate3200} 3200w`
 const PORTRAIT_SRCSET = `${platePortrait800} 800w, ${platePortrait1200} 1200w`
@@ -18,14 +19,16 @@ const LANDSCAPE_SIZES = 'max(100vw, 178svh)'
 /**
  * Painted dusk sky behind screen 1: a hand-painted plate (see
  * demo/src/assets/sky/, exported at the frozen STRATOS gradient's
- * composition), replacing the old procedural CSS sky. A responsive
- * <picture> — a taller crop below 768px, the landscape plate above it —
- * object-fit: cover, so it always fills `.screen-1` exactly.
+ * composition) with a subtle WebGL "breeze" cinemagraph over it that makes
+ * the painted clouds gently billow (SkyBreeze.tsx). The plate is a
+ * responsive <picture> — a taller crop below 768px, the landscape plate
+ * above it — object-fit: cover, so it always fills `.screen-1` exactly.
  *
  * The `.sky` div's own background gradient (frozen tokens, styles.css) is
  * the first-paint fallback before the plate has loaded; the img itself
- * fades in on load. Purely decorative — aria-hidden and pointer-events:none
- * throughout.
+ * fades in on load. `.sky-bottom-fade` softens the plate's dark lower band
+ * into screen 2's own background so the hand-off has no seam. Purely
+ * decorative — aria-hidden and pointer-events:none throughout.
  */
 export function Sky() {
   const imgRef = useRef<HTMLImageElement>(null)
@@ -51,6 +54,8 @@ export function Sky() {
           onLoad={handleLoad}
         />
       </picture>
+
+      <SkyBreeze imgRef={imgRef} ready={loaded} />
 
       <div className="sky-vignette-top" />
       <div className="sky-bottom-fade" />
