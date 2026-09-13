@@ -130,7 +130,6 @@ export default function App() {
   return (
     <>
       {!introDone && <div className="intro-wipe" aria-hidden="true" onAnimationEnd={() => setIntroDone(true)} />}
-      <Sky />
       <div className="page">
         <section
           className="screen screen-1"
@@ -138,6 +137,11 @@ export default function App() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
+          {/* Full-bleed: .sky fills this outer, un-constrained section so the
+              twilight gradient spans the whole viewport width. Actual content
+              lives in .screen-1-inner, which carries the max-width column. */}
+          <Sky />
+          <div className="screen-1-inner">
           <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
           <div className="coin-stage" aria-label={`3D preview: ${activeLogo.label}`}>
@@ -235,10 +239,16 @@ export default function App() {
             </span>
             Install
           </a>
+          </div>
         </section>
 
         <section className="screen screen-2" id="install">
-          <div className="screen-2-ground" aria-hidden="true" />
+          <div className="screen-2-ground" aria-hidden="true">
+            <div className="cloud-sea" />
+            <span className="star star-1" />
+            <span className="star star-2" />
+            <span className="star star-3" />
+          </div>
           <div className="screen-2-inner">
             <GetItSection />
             <HowItWorks />

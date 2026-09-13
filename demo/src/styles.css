@@ -125,15 +125,17 @@ a {
   outline-offset: 2px;
 }
 
-/* ---------- Sky: fixed skybox + parallax cloud deck + horizon haze ----------
-   Fixed (not scrolled) so the same gradient always frames screen 1's hero
-   text near the dark top and screen 2 reads its own darker ground below —
-   see .screen-2-ground. Clouds animate transform only; the umbrella
-   reduced-motion rule below collapses every animation to ~static. */
+/* ---------- Sky: skybox + parallax cloud deck, scoped to screen 1 ----------
+   A normal (non-fixed) absolutely-positioned layer sized to screen 1's own
+   box — this is what makes the transition into screen 2's cloud-sea
+   seamless: both are ordinary document content, not a viewport-fixed
+   backdrop that would show a fresh gradient at every scroll position.
+   Clouds animate transform only; the umbrella reduced-motion rule below
+   collapses every animation to ~static. */
 .sky {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   overflow: hidden;
   pointer-events: none;
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 38%, var(--sky-pink) 72%, var(--sky-horizon) 100%);
@@ -249,14 +251,28 @@ a {
   z-index: 1;
 }
 
+/* isolation:isolate gives each screen its own stacking context, so its
+   z-index:-1 background (.sky in screen 1, .screen-2-ground in screen 2)
+   stays contained and can never end up interleaved with the other
+   screen's background or content. */
 .screen {
   position: relative;
+  isolation: isolate;
   scroll-snap-align: start;
 }
 
 /* ---------- Screen 1: hero + coin + dock, exactly one viewport ---------- */
 
 .screen-1 {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+/* The max-width column lives here, one level in from .screen-1 itself, so
+   .sky (a sibling, absolutely filling .screen-1) stays full-bleed instead
+   of being cropped to this column's width. */
+.screen-1-inner {
+  height: 100%;
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
@@ -680,7 +696,7 @@ a {
 /* ---------- Desktop: two-column screen 1 ---------- */
 
 @media (min-width: 1024px) {
-  .screen-1 {
+  .screen-1-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
     grid-template-areas: 'copy stage' 'dock stage' 'cue stage';
@@ -742,7 +758,7 @@ a {
    viewports (e.g. iPhone SE at 375x667). ---------- */
 
 @media (max-height: 760px) {
-  .screen-1 {
+  .screen-1-inner {
     gap: var(--space-2);
     padding-top: var(--space-3);
     padding-bottom: var(--space-3);
@@ -777,7 +793,7 @@ a {
   }
 }
 
-/* ---------- Screen 2: install, how it works, footer ---------- */
+/* ---------- Screen 2: one continuous descent into a cloud sea, then night ---------- */
 
 .screen-2 {
   min-height: 100vh;
@@ -786,14 +802,82 @@ a {
   align-items: center;
 }
 
-/* A settling "ground" beneath the horizon — the dusk sky continues faintly
-   through the fixed .sky layer, but this dark scrim guarantees every glass
-   panel and label in screen 2 clears AA regardless of scroll position. */
+/* Picks up exactly where screen 1's horizon ends (same --sky-horizon hex)
+   and descends through the same frozen palette into --sky-top — no hard
+   edge, because both screens are ordinary scrolled content on the same
+   continuous gradient logic, not a fixed backdrop meeting a flat scrim. */
 .screen-2-ground {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 22, 58, 0.72) 0%, rgba(20, 22, 58, 0.92) 100%);
   z-index: -1;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    var(--sky-horizon) 0%,
+    var(--sky-pink) 9%,
+    var(--cloud-shadow) 19%,
+    var(--sky-mid) 27%,
+    var(--sky-top) 34%,
+    var(--sky-top) 100%
+  );
+}
+
+/* A dense, unbroken cloud-top texture for the top ~30% — screen 1's sky
+   "sinks into" this. Static (no animation): screen 2 is the calm floor of
+   the descent, and a static gradient/shape costs nothing on a software
+   rasterizer. */
+.cloud-sea {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  top: 0;
+  height: 34%;
+  opacity: 0.9;
+  background:
+    radial-gradient(30% 65% at 4% 45%, var(--cloud) 0%, transparent 58%),
+    radial-gradient(34% 70% at 22% 30%, var(--cloud-shadow) 0%, transparent 56%),
+    radial-gradient(32% 68% at 40% 48%, var(--cloud) 0%, transparent 58%),
+    radial-gradient(30% 65% at 58% 28%, var(--cloud-shadow) 0%, transparent 56%),
+    radial-gradient(34% 70% at 76% 46%, var(--cloud) 0%, transparent 58%),
+    radial-gradient(30% 65% at 94% 32%, var(--cloud-shadow) 0%, transparent 56%),
+    radial-gradient(40% 80% at 50% 70%, var(--cloud) 0%, transparent 62%);
+}
+
+/* A handful of faint stars in the deep, indigo part of the descent. A very
+   slow opacity twinkle (transform/opacity only) — subtle enough to feel
+   like a detail, not decoration competing with the panels below it. */
+.star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 5px 1px rgba(255, 255, 255, 0.55);
+  opacity: 0.5;
+  animation: star-twinkle 5s ease-in-out infinite alternate;
+}
+
+.star-1 {
+  top: 46%;
+  left: 16%;
+  animation-delay: 0s;
+}
+
+.star-2 {
+  top: 57%;
+  left: 78%;
+  animation-delay: 1.6s;
+}
+
+.star-3 {
+  top: 68%;
+  left: 48%;
+  animation-delay: 3.2s;
+}
+
+@keyframes star-twinkle {
+  from { opacity: 0.25; }
+  to { opacity: 0.75; }
 }
 
 .screen-2-inner {
@@ -1070,8 +1154,9 @@ a {
 }
 
 /* Every animation on the page collapses to effectively instant under
-   reduced motion — clouds, coin bob, glow pulse and scroll cue included —
-   satisfying "static" without a second code path per effect. */
+   reduced motion — clouds, coin bob, glow pulse, star twinkle and scroll
+   cue included — satisfying "static" without a second code path per
+   effect. */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
