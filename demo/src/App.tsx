@@ -188,6 +188,9 @@ export default function App() {
         <aside className="controls chamfer-lg">
           <div className="control-group">
             <span className="control-label" id="presets-label">
+              <span className="chevron-row" aria-hidden="true">
+                {'>'}
+              </span>{' '}
               Sample logos
             </span>
             <div className="preset-row" role="group" aria-labelledby="presets-label">
@@ -195,7 +198,7 @@ export default function App() {
                 <button
                   key={preset.id}
                   type="button"
-                  className="preset-btn"
+                  className="preset-btn chamfer"
                   aria-pressed={!activeLogo.isUpload && activeLogo.label === preset.label}
                   onClick={() => handlePreset(preset.file, preset.label)}
                 >
@@ -208,10 +211,17 @@ export default function App() {
 
           <div className="control-group">
             <label className="control-label" htmlFor="logo-upload">
+              <span className="chevron-row" aria-hidden="true">
+                {'>'}
+              </span>{' '}
               Use your own logo
             </label>
             <div className="upload-row">
-              <button type="button" className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
+              <button
+                type="button"
+                className="btn btn-primary chamfer"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Choose an image
               </button>
               <input
@@ -228,6 +238,9 @@ export default function App() {
 
           <div className="control-group">
             <label className="control-label" htmlFor="env-preset">
+              <span className="chevron-row" aria-hidden="true">
+                {'>'}
+              </span>{' '}
               Reflection environment
             </label>
             <select
