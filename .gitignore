@@ -7,3 +7,6 @@ demo/node_modules
 demo/dist
 demo/test-results
 demo/playwright-report
+demo/.check-shots
+demo/.playwright-mcp
+demo/*.png

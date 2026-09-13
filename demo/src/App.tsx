@@ -149,7 +149,6 @@ export default function App() {
             <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
             <div className="coin-stage" aria-label={`3D preview: ${activeLogo.label}`}>
-              <div className="coin-glow" aria-hidden="true" />
               <div className="coin-canvas-wrap">
                 <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
               </div>
@@ -242,12 +241,6 @@ export default function App() {
         </section>
 
         <section className="screen screen-2" id="install">
-          <div className="screen-2-ground" aria-hidden="true">
-            <div className="cloud-sea" />
-            <span className="star star-1" />
-            <span className="star star-2" />
-            <span className="star star-3" />
-          </div>
           <div className="screen-2-inner">
             <GetItSection />
             <HowItWorks />
