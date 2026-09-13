@@ -2,6 +2,7 @@ import { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, useTexture } from '@react-three/drei'
 import {
+  BackSide,
   BufferGeometry,
   CanvasTexture,
   DoubleSide,
@@ -106,8 +107,13 @@ function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: nu
           depthWrite={false}
         />
       </mesh>
-      {/* Back face rotated on Y (not UV-flipped) so both sides read correctly — SKILL.md 2d. */}
-      <mesh position={[0, 0, -half]} rotation={[0, Math.PI, 0]}>
+      {/*
+        Back face = the same plane seen from behind (BackSide, no Y rotation),
+        so its silhouette is exactly the rim's outline — SKILL.md 2d. Rotating
+        it by PI made the logo "readable" from behind but mirrored its outline
+        against the rim, which showed on every asymmetric logo (issue #11).
+      */}
+      <mesh position={[0, 0, -half]}>
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
         <meshStandardMaterial
           map={colorTexture}
@@ -116,7 +122,7 @@ function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: nu
           metalness={0.15}
           roughness={0.35}
           envMapIntensity={0.4}
-          side={FrontSide}
+          side={BackSide}
           transparent
           depthWrite={false}
         />
