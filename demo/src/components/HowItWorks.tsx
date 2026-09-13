@@ -17,21 +17,17 @@ export function HowItWorks() {
   return (
     <section className="how" aria-labelledby="how-title">
       <div className="section-head">
-        <span className="section-numeral" aria-hidden="true">
-          02
-        </span>
-        <div className="section-head-text">
-          <span className="dr-label">SEQUENCE // AG-SYS 02</span>
+        <div>
+          <span className="section-eyebrow">Sequence // 02</span>
           <h2 id="how-title" className="section-title">
             How it works
           </h2>
         </div>
-        <span className="section-head-rule" aria-hidden="true" />
       </div>
       <ol className="how-steps">
         {STEPS.map((step, i) => (
           <li key={step.title} className="how-step">
-            <span className="how-step-index chamfer" aria-hidden="true">
+            <span className="how-step-index" aria-hidden="true">
               {String(i + 1).padStart(2, '0')}
             </span>
             <div>
