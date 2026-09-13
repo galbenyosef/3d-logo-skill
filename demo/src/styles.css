@@ -17,11 +17,11 @@
   --border-strong: #3d3d46;
   --text: #f2f0e6;
   --text-dim: #9a988f;
-  --text-faint: #6c6a62;
+  /* #85837a, not the darker value an earlier pass used — that one sat at
+     ~3.6:1 against --bg, under the 4.5:1 AA floor for the small print it's
+     used on (stage hint, control notes, footer). This clears ~5.2:1. */
+  --text-faint: #85837a;
   --accent: #ffe14d;
-  /* --accent-strong is the legacy alias — every new rule should reach for
-     --accent-2 directly. Kept until the cleanup pass removes the last use. */
-  --accent-strong: #2ee6ff;
   --accent-2: #2ee6ff;
   --accent-ink: #0b0b0d;
   --accent-2-ink: #05191c;
@@ -44,12 +44,10 @@
   --weight-normal: 400;
   --weight-medium: 500;
 
-  /* Chamfered (cut-corner) silhouette replaces rounded corners everywhere.
-     Two sizes only, matching the radius budget it replaces. */
+  /* Chamfered (cut-corner) silhouette replaces rounded corners everywhere —
+     no border-radius token survives in this file at all, by design. */
   --chamfer-sm: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
   --chamfer-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
-  --radius-control: 0;
-  --radius-container: 0;
 
   --hazard: repeating-linear-gradient(135deg, var(--accent) 0 14px, var(--bg) 14px 28px);
 
@@ -530,6 +528,10 @@ a {
   box-shadow: none;
 }
 
+.stage-pause[aria-pressed='true']:focus-visible {
+  outline-color: var(--accent-ink);
+}
+
 .stage-pause:focus-visible {
   outline-offset: -4px;
 }
@@ -692,6 +694,14 @@ a {
   background: color-mix(in srgb, var(--accent) 82%, white);
 }
 
+/* The default focus ring is accent-2 (cyan) — good on every dark surface,
+   but cyan-on-yellow and cyan-on-cyan both sit under 1.2:1 contrast. Any
+   control that fills its own background with an accent color swaps the
+   ring to accent-ink instead. */
+.btn-primary:focus-visible {
+  outline-color: var(--accent-ink);
+}
+
 .status {
   margin: 0;
   font-size: var(--text-small);
@@ -760,6 +770,10 @@ a {
   box-shadow: none;
   color: var(--accent-ink);
   font-weight: var(--weight-medium);
+}
+
+.tab[aria-selected='true']:focus-visible {
+  outline-color: var(--accent-ink);
 }
 
 .tab-panel {
