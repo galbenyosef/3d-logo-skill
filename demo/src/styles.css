@@ -570,7 +570,6 @@ a {
 .chip {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
   flex: 0 0 auto;
   background: var(--control-fill);
   border: 1px solid var(--control-border);
@@ -584,12 +583,6 @@ a {
   white-space: nowrap;
   box-shadow: var(--control-highlight);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.chip img {
-  display: block;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .chip:hover {

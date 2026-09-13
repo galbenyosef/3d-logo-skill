@@ -43,28 +43,64 @@ describe('applyBrightnessThreshold', () => {
   })
 })
 
+/** Sets alpha=255 for every pixel in [x0,x1) x [y0,y1). */
+function fillRect(data: Uint8ClampedArray, width: number, x0: number, y0: number, x1: number, y1: number): void {
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      data[(y * width + x) * 4 + 3] = 255
+    }
+  }
+}
+
+/** Clears alpha to 0 for every pixel in [x0,x1) x [y0,y1) (cuts a hole). */
+function clearRect(data: Uint8ClampedArray, width: number, x0: number, y0: number, x1: number, y1: number): void {
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      data[(y * width + x) * 4 + 3] = 0
+    }
+  }
+}
+
+/** Un-normalizes a Point back to pixel space (inverse of extractPerimeter's mapping). */
+function toPixel([nx, ny]: [number, number], width: number, height: number): [number, number] {
+  return [(nx + 0.5) * width, (0.5 - ny) * height]
+}
+
+/** Euclidean distance in pixels from (px,py) to the nearest opaque pixel, searching out to maxRadius. */
+function nearestOpaqueDistance(
+  px: number,
+  py: number,
+  opaque: (x: number, y: number) => boolean,
+  maxRadius: number,
+): number {
+  let best = Infinity
+  const cx = Math.round(px)
+  const cy = Math.round(py)
+  for (let dy = -maxRadius; dy <= maxRadius; dy++) {
+    for (let dx = -maxRadius; dx <= maxRadius; dx++) {
+      const x = cx + dx
+      const y = cy + dy
+      if (!opaque(x, y)) continue
+      const dist = Math.hypot(px - x, py - y)
+      if (dist < best) best = dist
+    }
+  }
+  return best
+}
+
 describe('extractPerimeter', () => {
-  it('traces the left/right edges of an 8x8 rectangle', () => {
+  it('traces the outer boundary of an 8x8 rectangle as a single loop', () => {
     const width = 8
     const height = 8
     const data = new Uint8ClampedArray(width * height * 4)
-    for (let y = 0; y < height; y++) {
-      for (let x = 3; x <= 5; x++) {
-        data[(y * width + x) * 4 + 3] = 255
-      }
-    }
-    const outline = extractPerimeter(data, width, height)
-    // right edge (8 rows) + reversed left edge (8 rows)
-    expect(outline.length).toBe(16)
-    const rightXs = outline.slice(0, 8).map((p) => p[0])
-    const leftXs = outline.slice(8).map((p) => p[0])
-    for (const x of rightXs) {
-      expect(x).toBeGreaterThan(0)
-      expect(x).toBeLessThan(0.2)
-    }
-    for (const x of leftXs) {
-      expect(x).toBeGreaterThan(-0.2)
-      expect(x).toBeLessThan(0)
+    fillRect(data, width, 3, 0, 6, 8)
+    const loops = extractPerimeter(data, width, height)
+    expect(loops.length).toBe(1)
+    const xs = loops[0].map((p) => p[0])
+    // Rectangle spans columns 3-5 of 8 -> normalized x roughly [-0.125, 0.125].
+    for (const x of xs) {
+      expect(x).toBeGreaterThan(-0.3)
+      expect(x).toBeLessThan(0.3)
     }
   })
 
@@ -75,53 +111,109 @@ describe('extractPerimeter', () => {
   it('ignores a detached stray pixel far to the right of the main blob', () => {
     // Regression test for the rim "stray strip" bug: a single fully-opaque
     // pixel far outside the logo (e.g. a compression artifact or watermark
-    // speck) must not drag the row-scan's right edge out to it. The blob is
-    // sized so the speck is well under MIN_COMPONENT_RATIO (0.5%) of it.
+    // speck) must not survive to become its own loop. The blob is sized so
+    // the speck is well under MIN_COMPONENT_RATIO (0.5%) of it.
     const width = 100
     const height = 100
     const data = new Uint8ClampedArray(width * height * 4)
-    for (let y = 20; y < 60; y++) {
-      for (let x = 10; x < 30; x++) {
-        data[(y * width + x) * 4 + 3] = 255 // 20x40 = 800px blob
-      }
-    }
+    fillRect(data, width, 10, 20, 30, 60) // 20x40 = 800px blob
     // Detached stray pixel (1 / 800 = 0.125%), far to the right of the blob.
     data[(10 * width + 90) * 4 + 3] = 255
 
-    const outline = extractPerimeter(data, width, height)
-    expect(outline.length).toBeGreaterThan(0)
-    for (const [x] of outline) {
+    const loops = extractPerimeter(data, width, height)
+    expect(loops.length).toBe(1)
+    for (const [x] of loops[0]) {
       // Blob spans columns 10-29 of 100 -> normalized x roughly [-0.4, -0.2].
       // The stray pixel at column 90 would normalize to about +0.4.
       expect(x).toBeLessThan(0)
     }
   })
 
-  it('keeps every part of a multi-part logo (icon + separate wordmark)', () => {
+  it('keeps every part of a multi-part logo as its own loop (icon + separate wordmark)', () => {
     // A second component ~10% the size of the first, well above
     // MIN_COMPONENT_RATIO, placed below the first with a gap so they don't
-    // touch — must NOT be dropped like the stray-pixel speck above is.
+    // touch — must NOT be dropped like the stray-pixel speck above is, and
+    // must come back as its own loop rather than merged into one hull.
     const width = 40
     const height = 100
     const data = new Uint8ClampedArray(width * height * 4)
-    for (let y = 5; y < 25; y++) {
-      for (let x = 10; x < 30; x++) {
-        data[(y * width + x) * 4 + 3] = 255 // top blob: 20x20 = 400px
-      }
-    }
-    for (let y = 60; y < 64; y++) {
-      for (let x = 15; x < 25; x++) {
-        data[(y * width + x) * 4 + 3] = 255 // bottom blob: 4x10 = 40px (10%)
-      }
-    }
+    fillRect(data, width, 10, 5, 30, 25) // top blob: 20x20 = 400px
+    fillRect(data, width, 15, 60, 25, 64) // bottom blob: 4x10 = 40px (10%)
 
-    const outline = extractPerimeter(data, width, height)
-    expect(outline.length).toBeGreaterThan(0)
-    const ys = outline.map(([, y]) => y)
+    const loops = extractPerimeter(data, width, height)
+    expect(loops.length).toBe(2)
+    const allYs = loops.flatMap((loop) => loop.map(([, y]) => y))
     // Top blob rows (5-24) normalize to y in ~[0.26, 0.45]; bottom blob rows
     // (60-63) normalize to y in ~[-0.13, -0.10]. Both must be represented.
-    expect(Math.max(...ys)).toBeGreaterThan(0.2)
-    expect(Math.min(...ys)).toBeLessThan(-0.05)
+    expect(Math.max(...allYs)).toBeGreaterThan(0.2)
+    expect(Math.min(...allYs)).toBeLessThan(-0.05)
+  })
+
+  it('hugs a concave gap instead of bridging it (two-prong "U" regression)', () => {
+    // The old row-scan bug: scanning each row's leftmost/rightmost opaque
+    // pixel bridges the empty gap between two prongs with a straight wall.
+    // A proper contour trace must never place a vertex in that gap.
+    const width = 60
+    const height = 60
+    const data = new Uint8ClampedArray(width * height * 4)
+    fillRect(data, width, 10, 10, 20, 50) // left prong
+    fillRect(data, width, 40, 10, 50, 50) // right prong
+    fillRect(data, width, 10, 40, 50, 50) // base connecting them (bottom of the U)
+    // Gap: x in [20,40), y in [10,40) stays fully transparent.
+
+    const opaque = (x: number, y: number): boolean => {
+      if (x < 0 || x >= width || y < 0 || y >= height) return false
+      return data[(y * width + x) * 4 + 3] > 0
+    }
+
+    const loops = extractPerimeter(data, width, height)
+    expect(loops.length).toBe(1)
+    for (const point of loops[0]) {
+      const [px, py] = toPixel(point, width, height)
+      expect(nearestOpaqueDistance(px, py, opaque, 6)).toBeLessThan(1.5)
+    }
+  })
+
+  it('traces only the outer boundary of a ring, never the hole', () => {
+    const width = 60
+    const height = 60
+    const data = new Uint8ClampedArray(width * height * 4)
+    fillRect(data, width, 10, 10, 50, 50) // outer square
+    clearRect(data, width, 20, 20, 40, 40) // punch a square hole out of the middle
+
+    const loops = extractPerimeter(data, width, height)
+    expect(loops.length).toBe(1)
+    for (const [nx, ny] of loops[0]) {
+      const [px, py] = toPixel([nx, ny], width, height)
+      // Every vertex must sit near the OUTER edge (x/y within ~2px of 10 or
+      // 50), never near the inner hole edge (x/y near 20 or 40).
+      const nearOuter =
+        Math.abs(px - 10) < 2 || Math.abs(px - 50) < 2 || Math.abs(py - 10) < 2 || Math.abs(py - 50) < 2
+      const nearHole = px > 18 && px < 42 && py > 18 && py < 42
+      expect(nearOuter).toBe(true)
+      expect(nearHole).toBe(false)
+    }
+  })
+
+  it('finishes tracing a 768x768 logo in under 150ms', () => {
+    const width = 768
+    const height = 768
+    const data = new Uint8ClampedArray(width * height * 4)
+    // A handful of components with concave notches, roughly logo-shaped.
+    fillRect(data, width, 100, 100, 350, 650)
+    fillRect(data, width, 400, 150, 700, 400)
+    fillRect(data, width, 400, 420, 700, 600)
+    clearRect(data, width, 150, 250, 300, 350) // notch out of the first blob
+    fillRect(data, width, 40, 40, 80, 80) // small secondary piece, well above the speck ratio
+
+    const start = performance.now()
+    const loops = extractPerimeter(data, width, height)
+    const elapsedMs = performance.now() - start
+
+    expect(loops.length).toBeGreaterThan(0)
+    // eslint-disable-next-line no-console
+    console.log(`extractPerimeter(768x768): ${elapsedMs.toFixed(2)}ms`)
+    expect(elapsedMs).toBeLessThan(150)
   })
 })
 

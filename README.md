@@ -106,7 +106,7 @@ import { SpinningLogo3D } from './SpinningLogo3D'
 
 1. **Background removal** — dark pixels converted to transparent via offscreen canvas
 2. **Perimeter extraction** — alpha channel scanned row-by-row to trace the logo outline (~800 vertices)
-3. **Face rendering** — two `PlaneGeometry` faces with correct UVs (readable on both sides)
+3. **Face rendering** — two `PlaneGeometry` faces whose outline matches the rim from every angle (front reads normally, back is its true mirror, like a stamped coin)
 4. **Chrome rim** — indexed `BufferGeometry` ring with tangent-derived outward normals for smooth reflections
 5. **Reflections** — `MeshStandardMaterial` with `metalness: 1.0, roughness: 0.12` plus environment map for polished chrome
 6. **Normal map embossing** — Sobel filter generates a normal map at runtime for embossed depth on coin faces

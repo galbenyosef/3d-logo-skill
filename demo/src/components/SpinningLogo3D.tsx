@@ -1,17 +1,9 @@
 import { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, useTexture } from '@react-three/drei'
-import {
-  BufferGeometry,
-  CanvasTexture,
-  DoubleSide,
-  FrontSide,
-  type Group,
-  LinearSRGBColorSpace,
-  SRGBColorSpace,
-  Vector2,
-} from 'three'
+import { BufferGeometry, CanvasTexture, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
 import { buildRim } from '../lib/rimGeometry'
+import { computeCoinFaces } from '../lib/coinFaces'
 import {
   applyBrightnessThreshold,
   extractPerimeter,
@@ -74,8 +66,8 @@ function useLogoAssets(logoUrl: string): LogoAssets {
     // direction vectors and flatten the lighting (SKILL.md pitfall list).
     normalMap.colorSpace = LinearSRGBColorSpace
 
-    const outline = extractPerimeter(d, width, height)
-    const rimGeometry = buildRim(outline, PLANE_SIZE, THICKNESS)
+    const outlines = extractPerimeter(d, width, height)
+    const rimGeometry = buildRim(outlines, PLANE_SIZE, THICKNESS)
     const { color, emissive } = pickRimPalette(d)
 
     return { colorTexture, normalMap, rimGeometry, rimColor: color, rimEmissive: emissive }
@@ -89,10 +81,10 @@ function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: nu
   useFrame((_, delta) => {
     if (groupRef.current) groupRef.current.rotation.y += delta * SPIN_SPEED * spinMultiplier
   })
-  const half = THICKNESS / 2
+  const { front, back } = useMemo(() => computeCoinFaces(THICKNESS), [])
   return (
     <group ref={groupRef}>
-      <mesh position={[0, 0, half]}>
+      <mesh position={front.position} rotation-y={front.rotationY}>
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
         <meshStandardMaterial
           map={colorTexture}
@@ -101,13 +93,19 @@ function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: nu
           metalness={0.15}
           roughness={0.35}
           envMapIntensity={0.4}
-          side={FrontSide}
+          side={front.side}
           transparent
           depthWrite={false}
         />
       </mesh>
-      {/* Back face rotated on Y (not UV-flipped) so both sides read correctly — SKILL.md 2d. */}
-      <mesh position={[0, 0, -half]} rotation={[0, Math.PI, 0]}>
+      {/*
+        Back face = the same plane seen from behind (BackSide, no Y rotation),
+        so its silhouette is exactly the rim's outline — SKILL.md 2d and
+        computeCoinFaces (../lib/coinFaces.ts). Rotating it by PI made the
+        logo "readable" from behind but mirrored its outline against the
+        rim, which showed on every asymmetric logo (issue #11).
+      */}
+      <mesh position={back.position} rotation-y={back.rotationY}>
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
         <meshStandardMaterial
           map={colorTexture}
@@ -116,7 +114,7 @@ function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: nu
           metalness={0.15}
           roughness={0.35}
           envMapIntensity={0.4}
-          side={FrontSide}
+          side={back.side}
           transparent
           depthWrite={false}
         />

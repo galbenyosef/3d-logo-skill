@@ -176,8 +176,7 @@ export default function App() {
                       aria-pressed={!activeLogo.isUpload && activeLogo.label === preset.label}
                       onClick={() => handlePreset(preset.file, preset.label)}
                     >
-                      <img src={presetUrl(preset.file)} alt="" width={22} height={22} />
-                      <span>{preset.label}</span>
+                      {preset.label}
                     </button>
                   ))}
                 </div>

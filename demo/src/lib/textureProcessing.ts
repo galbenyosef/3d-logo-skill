@@ -70,20 +70,19 @@ export const ALPHA_OPAQUE_THRESHOLD = 128
 export const MIN_COMPONENT_RATIO = 0.005
 
 /**
- * Flood-fills 4-connected regions of `opaque` and drops any component whose
- * area is smaller than `MIN_COMPONENT_RATIO` of the largest one. Guards
- * against isolated specks (a watermark, a stray bright pixel) that pass the
- * alpha threshold but sit outside the real logo shape — without discarding
- * legitimate secondary pieces of a multi-part logo.
+ * 4-connected flood-fill labelling shared by `dropSmallSpecks` (which needs
+ * component sizes) and the contour tracer (which needs each component
+ * isolated so a Moore-neighbour trace can't leak across a diagonal touch
+ * between two different pieces of a multi-part logo).
  */
-export function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uint8Array {
+function labelComponents(mask: Uint8Array, width: number, height: number): { labels: Int32Array; sizes: number[] } {
   const n = width * height
   const labels = new Int32Array(n).fill(-1)
   const sizes: number[] = []
   const stack = new Int32Array(n)
 
   for (let start = 0; start < n; start++) {
-    if (opaque[start] !== 1 || labels[start] !== -1) continue
+    if (mask[start] !== 1 || labels[start] !== -1) continue
     const label = sizes.length
     let size = 0
     let stackLen = 0
@@ -96,28 +95,28 @@ export function dropSmallSpecks(opaque: Uint8Array, width: number, height: numbe
       const y = (idx / width) | 0
       if (x > 0) {
         const left = idx - 1
-        if (opaque[left] === 1 && labels[left] === -1) {
+        if (mask[left] === 1 && labels[left] === -1) {
           labels[left] = label
           stack[stackLen++] = left
         }
       }
       if (x < width - 1) {
         const right = idx + 1
-        if (opaque[right] === 1 && labels[right] === -1) {
+        if (mask[right] === 1 && labels[right] === -1) {
           labels[right] = label
           stack[stackLen++] = right
         }
       }
       if (y > 0) {
         const up = idx - width
-        if (opaque[up] === 1 && labels[up] === -1) {
+        if (mask[up] === 1 && labels[up] === -1) {
           labels[up] = label
           stack[stackLen++] = up
         }
       }
       if (y < height - 1) {
         const down = idx + width
-        if (opaque[down] === 1 && labels[down] === -1) {
+        if (mask[down] === 1 && labels[down] === -1) {
           labels[down] = label
           stack[stackLen++] = down
         }
@@ -125,6 +124,19 @@ export function dropSmallSpecks(opaque: Uint8Array, width: number, height: numbe
     }
     sizes.push(size)
   }
+  return { labels, sizes }
+}
+
+/**
+ * Flood-fills 4-connected regions of `opaque` and drops any component whose
+ * area is smaller than `MIN_COMPONENT_RATIO` of the largest one. Guards
+ * against isolated specks (a watermark, a stray bright pixel) that pass the
+ * alpha threshold but sit outside the real logo shape — without discarding
+ * legitimate secondary pieces of a multi-part logo.
+ */
+export function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uint8Array {
+  const n = width * height
+  const { labels, sizes } = labelComponents(opaque, width, height)
 
   const result = new Uint8Array(n)
   if (sizes.length === 0) return result
@@ -138,52 +150,213 @@ export function dropSmallSpecks(opaque: Uint8Array, width: number, height: numbe
   return result
 }
 
+/** Clockwise-ordered 8-neighbour offsets used by the Moore boundary tracer. */
+const MOORE_DIRS: Point[] = [
+  [0, -1], // N
+  [1, -1], // NE
+  [1, 0], // E
+  [1, 1], // SE
+  [0, 1], // S
+  [-1, 1], // SW
+  [-1, 0], // W
+  [-1, -1], // NW
+]
+
+function mooreDirIndex(dx: number, dy: number): number {
+  for (let i = 0; i < 8; i++) {
+    if (MOORE_DIRS[i][0] === dx && MOORE_DIRS[i][1] === dy) return i
+  }
+  return 0
+}
+
 /**
- * Row-by-row alpha scan tracing the logo's outline, then Laplacian-smoothed
- * (SKILL.md 2b). Pixels are only considered part of the logo if they clear
- * `alphaThreshold` AND aren't part of a tiny detached speck — see
- * ALPHA_OPAQUE_THRESHOLD and dropSmallSpecks above. Multi-part logos (an
- * icon plus a separate wordmark, individual letters) keep every real piece.
+ * Moore-neighbour trace of one labelled component's OUTER boundary, in pixel
+ * coordinates. Starting from the component's topmost-then-leftmost pixel
+ * (always on the outer border — a raster-first pixel can never sit inside a
+ * hole) and always resuming the neighbour scan just past the direction we
+ * arrived from, the walk stays on the outside of the shape: interior holes
+ * are never visited, so a ring produces one outer loop and no hole loop.
+ *
+ * The membership test is pinned to this exact `label`, not just "any opaque
+ * pixel" — two components of a multi-part logo can touch diagonally without
+ * being 4-connected, and without this the trace could hop from one piece to
+ * the other at that corner.
+ *
+ * This walks clockwise in pixel space (y grows downward). The caller's
+ * y-flip into normalized coordinates reverses that into counter-clockwise
+ * winding in the (y-up) space `buildRim` expects, so its tangent-derived
+ * normals come out pointing outward — see buildRim's dot-product test.
+ */
+function traceComponentBoundary(labels: Int32Array, width: number, height: number, label: number): Point[] {
+  const n = width * height
+  let startIdx = -1
+  for (let i = 0; i < n; i++) {
+    if (labels[i] === label) {
+      startIdx = i
+      break
+    }
+  }
+  if (startIdx === -1) return []
+  const startX = startIdx % width
+  const startY = (startIdx / width) | 0
+  const isFg = (x: number, y: number): boolean =>
+    x >= 0 && x < width && y >= 0 && y < height && labels[y * width + x] === label
+
+  let hasNeighbour = false
+  for (const [dx, dy] of MOORE_DIRS) {
+    if (isFg(startX + dx, startY + dy)) {
+      hasNeighbour = true
+      break
+    }
+  }
+  // Isolated single-pixel component: emit a tiny 1px square so downstream
+  // arc-length resampling still has a valid (non-degenerate) loop.
+  if (!hasNeighbour) {
+    return [
+      [startX, startY],
+      [startX + 1, startY],
+      [startX + 1, startY + 1],
+      [startX, startY + 1],
+    ]
+  }
+
+  const initialBacktrackX = startX - 1
+  const initialBacktrackY = startY
+  let cx = startX
+  let cy = startY
+  let bx = initialBacktrackX
+  let by = initialBacktrackY
+  const boundary: Point[] = [[cx, cy]]
+  const maxSteps = n * 4 + 16 // safety valve; a clean trace stops well before this
+  for (let step = 0; step < maxSteps; step++) {
+    const startDir = (mooreDirIndex(bx - cx, by - cy) + 1) % 8
+    let foundDir = -1
+    let lastBgX = bx
+    let lastBgY = by
+    for (let k = 0; k < 8; k++) {
+      const d = (startDir + k) % 8
+      const nx = cx + MOORE_DIRS[d][0]
+      const ny = cy + MOORE_DIRS[d][1]
+      if (isFg(nx, ny)) {
+        foundDir = d
+        break
+      }
+      lastBgX = nx
+      lastBgY = ny
+    }
+    if (foundDir === -1) break // shouldn't happen; hasNeighbour was checked above
+    const nx = cx + MOORE_DIRS[foundDir][0]
+    const ny = cy + MOORE_DIRS[foundDir][1]
+    bx = lastBgX
+    by = lastBgY
+    cx = nx
+    cy = ny
+    if (cx === startX && cy === startY && bx === initialBacktrackX && by === initialBacktrackY) {
+      break // Jacob-style stopping criterion: back to the start pixel via the same backtrack
+    }
+    boundary.push([cx, cy])
+  }
+  return boundary
+}
+
+function polygonPerimeter(pts: Point[]): number {
+  let total = 0
+  const n = pts.length
+  for (let i = 0; i < n; i++) {
+    const a = pts[i]
+    const b = pts[(i + 1) % n]
+    total += Math.hypot(b[0] - a[0], b[1] - a[1])
+  }
+  return total
+}
+
+/** Resamples a closed polygon to `count` points evenly spaced by arc length. */
+function resampleByArcLength(pts: Point[], count: number): Point[] {
+  const n = pts.length
+  if (n < 2 || count < 1) return pts
+  const total = polygonPerimeter(pts)
+  if (total === 0) return pts
+
+  const step = total / count
+  const result: Point[] = []
+  let edgeIndex = 0
+  let edgeStart = pts[0]
+  let edgeEnd = pts[1 % n]
+  let edgeLen = Math.hypot(edgeEnd[0] - edgeStart[0], edgeEnd[1] - edgeStart[1])
+  let accumulated = 0 // distance from loop start up to edgeStart
+  for (let i = 0; i < count; i++) {
+    const target = i * step
+    while (accumulated + edgeLen < target && edgeIndex < n - 1) {
+      accumulated += edgeLen
+      edgeIndex++
+      edgeStart = pts[edgeIndex % n]
+      edgeEnd = pts[(edgeIndex + 1) % n]
+      edgeLen = Math.hypot(edgeEnd[0] - edgeStart[0], edgeEnd[1] - edgeStart[1])
+    }
+    const t = edgeLen === 0 ? 0 : (target - accumulated) / edgeLen
+    result.push([edgeStart[0] + (edgeEnd[0] - edgeStart[0]) * t, edgeStart[1] + (edgeEnd[1] - edgeStart[1]) * t])
+  }
+  return result
+}
+
+/**
+ * Traces the outer boundary of every kept connected component with a
+ * Moore-neighbour contour tracer, replacing the old row-scan (SKILL.md 2b).
+ * The row-scan only kept each row's leftmost/rightmost opaque pixel, which
+ * is correct only for row-convex shapes — on a real logo it bridges gaps
+ * (a solid bar spanning the empty space between two wingtips) and produces
+ * flat "shelves" wherever a fin or tail separates from the body within a
+ * row. Contour tracing follows every concavity instead, and returns one
+ * loop per separate piece rather than one hull-ish loop for the whole logo.
+ *
+ * Interior holes are ignored (the face plane already covers them) because
+ * the trace always starts at a component's topmost-then-leftmost pixel,
+ * which is never inside a hole.
+ *
+ * Pixels are only considered part of the logo if they clear `alphaThreshold`
+ * AND aren't part of a tiny detached speck — see ALPHA_OPAQUE_THRESHOLD and
+ * dropSmallSpecks above. Multi-part logos (an icon plus a separate wordmark,
+ * individual letters) keep every real piece, each as its own loop.
+ *
+ * Each traced loop is resampled by arc length to a vertex count
+ * proportional to its own perimeter (200-900, so a small secondary piece
+ * doesn't get the same vertex budget as the main body) before the existing
+ * per-loop Laplacian smoothing runs.
  */
 export function extractPerimeter(
   data: Uint8ClampedArray,
   width: number,
   height: number,
   alphaThreshold = ALPHA_OPAQUE_THRESHOLD,
-): Point[] {
+): Point[][] {
   const n = width * height
   const opaque = new Uint8Array(n)
   for (let i = 0; i < n; i++) {
     opaque[i] = data[i * 4 + 3] > alphaThreshold ? 1 : 0
   }
   const mask = dropSmallSpecks(opaque, width, height)
+  const { labels, sizes } = labelComponents(mask, width, height)
+  if (sizes.length === 0) return []
 
-  const rightEdge: Point[] = []
-  const leftEdge: Point[] = []
-  for (let y = 0; y < height; y++) {
-    let left = -1
-    let right = -1
-    for (let x = 0; x < width; x++) {
-      if (mask[y * width + x] === 1) {
-        if (left === -1) left = x
-        right = x
-      }
-    }
-    if (left !== -1 && right > left) {
-      rightEdge.push([right, y])
-      leftEdge.push([left, y])
-    }
+  const loops: Point[][] = []
+  for (let label = 0; label < sizes.length; label++) {
+    const traced = traceComponentBoundary(labels, width, height, label)
+    if (traced.length < 3) continue
+    const perimeter = polygonPerimeter(traced)
+    const targetCount = Math.max(200, Math.min(900, Math.round(perimeter / 3)))
+    const resampled = resampleByArcLength(traced, targetCount)
+    const normalized: Point[] = resampled.map(([px, py]) => [px / width - 0.5, 0.5 - py / height])
+    loops.push(smoothOutline(normalized, 5))
   }
-  if (rightEdge.length === 0) return []
-  const raw = [...rightEdge, ...leftEdge.reverse()]
-  const step = Math.max(1, Math.floor(raw.length / 800))
-  const sampled: Point[] = raw
-    .filter((_, i) => i % step === 0)
-    .map(([px, py]) => [px / width - 0.5, 0.5 - py / height])
-  return smoothOutline(sampled, 5)
+  return loops
 }
 
-/** Laplacian smoothing: averages each vertex toward its neighbours, `iterations` times. */
+/**
+ * Laplacian smoothing: averages each vertex toward its neighbours,
+ * `iterations` times. Closed-loop aware (wraps with modulo indexing), so
+ * it's called once per traced loop in `extractPerimeter` — each piece of a
+ * multi-part logo is smoothed independently of the others.
+ */
 export function smoothOutline(outline: Point[], iterations: number): Point[] {
   let pts = outline
   const n = pts.length

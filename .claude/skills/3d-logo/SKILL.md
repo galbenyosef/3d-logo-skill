@@ -14,7 +14,7 @@ A `SpinningLogo3D.tsx` component that:
 - Auto-removes dark/black backgrounds by converting to transparency at runtime
 - Extracts the logo's exact perimeter from the alpha channel
 - Builds a chrome rim that follows the logo's actual outline shape
-- Renders the logo readable on BOTH sides of the coin
+- Renders the logo on BOTH faces, with the back face's outline matching the rim exactly (seen from behind it's the mirror image, as on a real stamped coin)
 - Adds environment reflections for a premium chrome finish
 - Spins smoothly on the Y axis
 
@@ -105,20 +105,25 @@ If the logo already has a transparent background (actual PNG with alpha), skip t
 
 #### 2b. Perimeter extraction
 
-Scan the alpha channel row-by-row to find left and right edges of the opaque region. This traces the exact outline of the logo. **Do not test `alpha > 0`** — real logo images (especially AI-generated ones) often carry residual low-alpha noise from compression/dithering scattered across nominally-transparent regions, sometimes reaching alpha values in the dozens far from the actual artwork. A raw `> 0` test lets that noise drag the row-scan's left/right edges out toward the image border, producing a long stray spike in the outline that shows up as a flat strip sticking off the finished chrome rim. Threshold at a real opacity cutoff and drop tiny detached specks (a watermark, a stray bright pixel) that pass the threshold but sit outside the real logo shape — **do not just keep the single largest connected region**, since that would break a multi-part logo (an icon plus a separate wordmark, individual letters): keep every component that's at least `MIN_COMPONENT_RATIO` of the largest one's size, so real secondary pieces survive and only disproportionately tiny specks are dropped:
+Trace the **outer contour of each connected component** in the opaque mask with a Moore-neighbour boundary tracer. **Do not test `alpha > 0`** — real logo images (especially AI-generated ones) often carry residual low-alpha noise from compression/dithering scattered across nominally-transparent regions, sometimes reaching alpha values in the dozens far from the actual artwork. A raw `> 0` test lets that noise into the mask as its own tiny component. Threshold at a real opacity cutoff and drop tiny detached specks (a watermark, a stray bright pixel) that pass the threshold but sit outside the real logo shape — **do not just keep the single largest connected region**, since that would break a multi-part logo (an icon plus a separate wordmark, individual letters): keep every component that's at least `MIN_COMPONENT_RATIO` of the largest one's size, so real secondary pieces survive and only disproportionately tiny specks are dropped.
+
+**Do not row-scan for left/right edges** — keeping only each row's leftmost and rightmost opaque pixel (the previous version of this section) is only correct for row-convex shapes. On a real logo it bridges gaps: a solid rim bar spans the empty space between two raised wingtips, and flat horizontal "shelves" appear wherever a tail or fin separates from the body within a row. A proper contour trace follows every concavity instead, and — because it runs per connected component — gives each separate piece of a multi-part logo its own loop instead of one hull-ish loop for the whole thing:
 
 ```tsx
 const ALPHA_OPAQUE_THRESHOLD = 128
 const MIN_COMPONENT_RATIO = 0.005 // components smaller than 0.5% of the largest are specks, not logo parts
+type Point = [number, number]
 
-// Flood-fills 4-connected regions of `opaque` and drops any component under MIN_COMPONENT_RATIO of the largest.
-function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uint8Array {
+// 4-connected flood-fill labelling, shared by dropSmallSpecks (needs sizes)
+// and the contour tracer (needs each component isolated so a trace can't
+// leak across a diagonal touch between two different pieces).
+function labelComponents(mask: Uint8Array, width: number, height: number) {
   const n = width * height
   const labels = new Int32Array(n).fill(-1)
   const sizes: number[] = []
   const stack = new Int32Array(n)
   for (let start = 0; start < n; start++) {
-    if (opaque[start] !== 1 || labels[start] !== -1) continue
+    if (mask[start] !== 1 || labels[start] !== -1) continue
     const label = sizes.length
     let size = 0, stackLen = 0
     stack[stackLen++] = start
@@ -127,13 +132,20 @@ function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uin
       const idx = stack[--stackLen]
       size++
       const x = idx % width, y = (idx / width) | 0
-      if (x > 0 && opaque[idx - 1] === 1 && labels[idx - 1] === -1) { labels[idx - 1] = label; stack[stackLen++] = idx - 1 }
-      if (x < width - 1 && opaque[idx + 1] === 1 && labels[idx + 1] === -1) { labels[idx + 1] = label; stack[stackLen++] = idx + 1 }
-      if (y > 0 && opaque[idx - width] === 1 && labels[idx - width] === -1) { labels[idx - width] = label; stack[stackLen++] = idx - width }
-      if (y < height - 1 && opaque[idx + width] === 1 && labels[idx + width] === -1) { labels[idx + width] = label; stack[stackLen++] = idx + width }
+      if (x > 0 && mask[idx - 1] === 1 && labels[idx - 1] === -1) { labels[idx - 1] = label; stack[stackLen++] = idx - 1 }
+      if (x < width - 1 && mask[idx + 1] === 1 && labels[idx + 1] === -1) { labels[idx + 1] = label; stack[stackLen++] = idx + 1 }
+      if (y > 0 && mask[idx - width] === 1 && labels[idx - width] === -1) { labels[idx - width] = label; stack[stackLen++] = idx - width }
+      if (y < height - 1 && mask[idx + width] === 1 && labels[idx + width] === -1) { labels[idx + width] = label; stack[stackLen++] = idx + width }
     }
     sizes.push(size)
   }
+  return { labels, sizes }
+}
+
+// Drops any component under MIN_COMPONENT_RATIO of the largest.
+function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uint8Array {
+  const n = width * height
+  const { labels, sizes } = labelComponents(opaque, width, height)
   const result = new Uint8Array(n)
   if (sizes.length === 0) return result
   const largestSize = Math.max(...sizes)
@@ -145,44 +157,128 @@ function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uin
   return result
 }
 
-function extractPerimeter(data: Uint8ClampedArray, width: number, height: number) {
+// Clockwise-ordered 8-neighbour offsets used by the Moore boundary tracer.
+const MOORE_DIRS: Point[] = [
+  [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1],
+]
+function mooreDirIndex(dx: number, dy: number): number {
+  for (let i = 0; i < 8; i++) if (MOORE_DIRS[i][0] === dx && MOORE_DIRS[i][1] === dy) return i
+  return 0
+}
+
+// Moore-neighbour trace of one labelled component's OUTER boundary, in pixel
+// coordinates. Starting from the component's topmost-then-leftmost pixel
+// (always on the outer border — a raster-first pixel can never sit inside a
+// hole) and always resuming the neighbour scan just past the direction we
+// arrived from, the walk stays on the outside of the shape: interior holes
+// are never visited, so a ring produces one outer loop and no hole loop.
+// This walks clockwise in pixel space (y grows downward); the caller's
+// y-flip into normalized coordinates turns that into counter-clockwise
+// winding in the (y-up) space buildRim expects, so its tangent-derived
+// normals come out pointing outward.
+function traceComponentBoundary(labels: Int32Array, width: number, height: number, label: number): Point[] {
+  const n = width * height
+  let startIdx = -1
+  for (let i = 0; i < n; i++) if (labels[i] === label) { startIdx = i; break }
+  if (startIdx === -1) return []
+  const startX = startIdx % width, startY = (startIdx / width) | 0
+  const isFg = (x: number, y: number) => x >= 0 && x < width && y >= 0 && y < height && labels[y * width + x] === label
+
+  let hasNeighbour = false
+  for (const [dx, dy] of MOORE_DIRS) if (isFg(startX + dx, startY + dy)) { hasNeighbour = true; break }
+  if (!hasNeighbour) {
+    // Isolated single pixel: emit a tiny 1px square so resampling stays valid.
+    return [[startX, startY], [startX + 1, startY], [startX + 1, startY + 1], [startX, startY + 1]]
+  }
+
+  const initialBacktrackX = startX - 1, initialBacktrackY = startY
+  let cx = startX, cy = startY, bx = initialBacktrackX, by = initialBacktrackY
+  const boundary: Point[] = [[cx, cy]]
+  const maxSteps = n * 4 + 16
+  for (let step = 0; step < maxSteps; step++) {
+    const startDir = (mooreDirIndex(bx - cx, by - cy) + 1) % 8
+    let foundDir = -1, lastBgX = bx, lastBgY = by
+    for (let k = 0; k < 8; k++) {
+      const d = (startDir + k) % 8
+      const nx = cx + MOORE_DIRS[d][0], ny = cy + MOORE_DIRS[d][1]
+      if (isFg(nx, ny)) { foundDir = d; break }
+      lastBgX = nx; lastBgY = ny
+    }
+    if (foundDir === -1) break
+    const nx = cx + MOORE_DIRS[foundDir][0], ny = cy + MOORE_DIRS[foundDir][1]
+    bx = lastBgX; by = lastBgY; cx = nx; cy = ny
+    if (cx === startX && cy === startY && bx === initialBacktrackX && by === initialBacktrackY) break
+    boundary.push([cx, cy])
+  }
+  return boundary
+}
+
+function polygonPerimeter(pts: Point[]): number {
+  let total = 0
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length]
+    total += Math.hypot(b[0] - a[0], b[1] - a[1])
+  }
+  return total
+}
+
+// Resamples a closed polygon to `count` points evenly spaced by arc length.
+function resampleByArcLength(pts: Point[], count: number): Point[] {
+  const n = pts.length
+  if (n < 2 || count < 1) return pts
+  const total = polygonPerimeter(pts)
+  if (total === 0) return pts
+  const step = total / count
+  const result: Point[] = []
+  let edgeIndex = 0
+  let edgeStart = pts[0], edgeEnd = pts[1 % n]
+  let edgeLen = Math.hypot(edgeEnd[0] - edgeStart[0], edgeEnd[1] - edgeStart[1])
+  let accumulated = 0
+  for (let i = 0; i < count; i++) {
+    const target = i * step
+    while (accumulated + edgeLen < target && edgeIndex < n - 1) {
+      accumulated += edgeLen
+      edgeIndex++
+      edgeStart = pts[edgeIndex % n]
+      edgeEnd = pts[(edgeIndex + 1) % n]
+      edgeLen = Math.hypot(edgeEnd[0] - edgeStart[0], edgeEnd[1] - edgeStart[1])
+    }
+    const t = edgeLen === 0 ? 0 : (target - accumulated) / edgeLen
+    result.push([edgeStart[0] + (edgeEnd[0] - edgeStart[0]) * t, edgeStart[1] + (edgeEnd[1] - edgeStart[1]) * t])
+  }
+  return result
+}
+
+// Traces every kept component's outer contour and returns one loop per piece.
+function extractPerimeter(data: Uint8ClampedArray, width: number, height: number): Point[][] {
   const n = width * height
   const opaque = new Uint8Array(n)
   for (let i = 0; i < n; i++) opaque[i] = data[i * 4 + 3] > ALPHA_OPAQUE_THRESHOLD ? 1 : 0
   const mask = dropSmallSpecks(opaque, width, height)
+  const { labels, sizes } = labelComponents(mask, width, height)
+  if (sizes.length === 0) return []
 
-  const rightEdge: [number, number][] = []
-  const leftEdge: [number, number][] = []
-  for (let y = 0; y < height; y++) {
-    let left = -1, right = -1
-    for (let x = 0; x < width; x++) {
-      if (mask[y * width + x] === 1) {
-        if (left === -1) left = x
-        right = x
-      }
-    }
-    if (left !== -1 && right > left) {
-      rightEdge.push([right, y])
-      leftEdge.push([left, y])
-    }
+  const loops: Point[][] = []
+  for (let label = 0; label < sizes.length; label++) {
+    const traced = traceComponentBoundary(labels, width, height, label)
+    if (traced.length < 3) continue
+    // Resample proportional to this loop's own perimeter (200-900 pts) so a
+    // small secondary piece doesn't get the same vertex budget as the body.
+    const targetCount = Math.max(200, Math.min(900, Math.round(polygonPerimeter(traced) / 3)))
+    const resampled = resampleByArcLength(traced, targetCount)
+    const normalized: Point[] = resampled.map(([px, py]) => [px / width - 0.5, 0.5 - py / height])
+    // Laplacian smoothing removes pixel-level jitter for cleaner reflections
+    loops.push(smoothOutline(normalized, 5))
   }
-  // Right edge top→bottom, then left edge bottom→top = closed perimeter
-  const raw = [...rightEdge, ...leftEdge.reverse()]
-  // Simplify to ~800 vertices for smooth rim reflections
-  const step = Math.max(1, Math.floor(raw.length / 800))
-  const sampled = raw.filter((_, i) => i % step === 0).map(([px, py]) => [
-    px / width - 0.5,
-    0.5 - py / height,
-  ] as [number, number])
-  // Laplacian smoothing removes pixel-level jitter for cleaner reflections
-  return smoothOutline(sampled, 5)
+  return loops
 }
 
-function smoothOutline(outline: [number, number][], iterations: number): [number, number][] {
+function smoothOutline(outline: Point[], iterations: number): Point[] {
   let pts = outline
+  const n = pts.length
+  if (n < 3) return pts
   for (let iter = 0; iter < iterations; iter++) {
-    const n = pts.length
-    const next: [number, number][] = []
+    const next: Point[] = []
     for (let i = 0; i < n; i++) {
       const prev = pts[(i - 1 + n) % n]
       const curr = pts[i]
@@ -198,44 +294,51 @@ function smoothOutline(outline: [number, number][], iterations: number): [number
 }
 ```
 
-**Why smoothing matters:** The perimeter traces pixel boundaries, creating micro-jitter. Each jagged step produces a slightly different normal, which chrome (metalness=1, low roughness) amplifies into visible horizontal bands. Laplacian smoothing averages each vertex toward its neighbors, producing a continuous curve that reflects the environment smoothly.
+**Why smoothing matters:** The perimeter traces pixel boundaries, creating micro-jitter. Each jagged step produces a slightly different normal, which chrome (metalness=1, low roughness) amplifies into visible horizontal bands. Laplacian smoothing averages each vertex toward its neighbors, producing a continuous curve that reflects the environment smoothly. It runs per loop (closed-loop aware via modulo indexing), so each piece of a multi-part logo is smoothed independently of the others.
 
 #### 2c. Rim geometry builder
 
-Build an indexed ring with manually computed tangent-based normals. Each vertex's outward normal is derived from the averaged tangent direction of its neighbors — this produces much smoother reflections than `computeVertexNormals()` which averages face normals:
+Build an indexed ring **per loop** (one wall per connected component from 2b) with manually computed tangent-based normals, all written into a single BufferGeometry. Each vertex's outward normal is derived from the averaged tangent direction of its neighbors — this produces much smoother reflections than `computeVertexNormals()` which averages face normals:
 
 ```tsx
-function buildRim(outline: [number, number][], planeSize: number, thickness: number) {
+function buildRim(outlines: Point[][], planeSize: number, thickness: number) {
   const half = thickness / 2
   const s = planeSize
-  const n = outline.length
   const positions: number[] = []
   const normals: number[] = []
   const indices: number[] = []
-  for (let i = 0; i < n; i++) {
-    const prev = outline[(i - 1 + n) % n]
-    const curr = outline[i]
-    const next = outline[(i + 1) % n]
-    // Averaged tangent → perpendicular = smooth outward normal
-    const tx = next[0] - prev[0]
-    const ty = next[1] - prev[1]
-    const len = Math.sqrt(tx * tx + ty * ty) || 1
-    const nx = ty / len
-    const ny = -tx / len
-    const x = curr[0] * s
-    const y = curr[1] * s
-    positions.push(x, y, half)    // front vertex
-    normals.push(nx, ny, 0)
-    positions.push(x, y, -half)   // back vertex
-    normals.push(nx, ny, 0)
+  let vertexOffset = 0
+
+  for (const outline of outlines) {
+    const n = outline.length
+    if (n < 3) continue
+    for (let i = 0; i < n; i++) {
+      const prev = outline[(i - 1 + n) % n]
+      const curr = outline[i]
+      const next = outline[(i + 1) % n]
+      // Averaged tangent → perpendicular = smooth outward normal
+      const tx = next[0] - prev[0]
+      const ty = next[1] - prev[1]
+      const len = Math.sqrt(tx * tx + ty * ty) || 1
+      const nx = ty / len
+      const ny = -tx / len
+      const x = curr[0] * s
+      const y = curr[1] * s
+      positions.push(x, y, half)    // front vertex
+      normals.push(nx, ny, 0)
+      positions.push(x, y, -half)   // back vertex
+      normals.push(nx, ny, 0)
+    }
+    for (let i = 0; i < n; i++) {
+      const i2 = (i + 1) % n
+      const f1 = vertexOffset + i * 2, b1 = vertexOffset + i * 2 + 1
+      const f2 = vertexOffset + i2 * 2, b2 = vertexOffset + i2 * 2 + 1
+      indices.push(f1, b1, f2)
+      indices.push(b1, b2, f2)
+    }
+    vertexOffset += n * 2
   }
-  for (let i = 0; i < n; i++) {
-    const i2 = (i + 1) % n
-    const f1 = i * 2, b1 = i * 2 + 1
-    const f2 = i2 * 2, b2 = i2 * 2 + 1
-    indices.push(f1, b1, f2)
-    indices.push(b1, b2, f2)
-  }
+
   const geo = new BufferGeometry()
   geo.setAttribute('position', new Float32BufferAttribute(positions, 3))
   geo.setAttribute('normal', new Float32BufferAttribute(normals, 3))
@@ -244,13 +347,13 @@ function buildRim(outline: [number, number][], planeSize: number, thickness: num
 }
 ```
 
-**Why tangent-based normals:** `computeVertexNormals()` averages face normals weighted by area — with hundreds of thin horizontal quads, the face normals barely differ between neighbors, so averaging doesn't help. Computing normals from the outline tangent direction gives each vertex a geometrically correct outward normal that interpolates smoothly along the rim surface.
+**Why tangent-based normals:** `computeVertexNormals()` averages face normals weighted by area — with hundreds of thin horizontal quads, the face normals barely differ between neighbors, so averaging doesn't help. Computing normals from the outline tangent direction gives each vertex a geometrically correct outward normal that interpolates smoothly along the rim surface. This only comes out pointing outward because each loop from 2b winds counter-clockwise in the normalized (y-up) coordinate space — check the sign if you change the tracer's winding.
 
 #### 2d. Coin assembly
 
-Two `PlaneGeometry` faces (front + back) with the transparent texture. The back face is rotated `[0, PI, 0]` — because PlaneGeometry has correct UV mapping by default, BOTH faces show the logo text readable (no mirroring).
+Two `PlaneGeometry` faces (front + back) with the transparent texture. The back face is the **same plane seen from behind**: same orientation as the front, pushed to `z = -half`, rendered with `side={BackSide}` (import `BackSide` from `three` alongside `FrontSide` and `DoubleSide`).
 
-**Critical**: Do NOT flip UV coordinates. PlaneGeometry UVs are already correct. The Y rotation on the back face handles the mirror naturally.
+**Critical**: Do NOT rotate the back face `[0, PI, 0]`, and do NOT flip its UVs. Either one makes the back logo "readable" but mirrors its silhouette against the rim, which keeps the front outline — so on any asymmetric logo the rim visibly traces a reversed shape behind the face (issue #11). The back face must be the same plane as the front, just seen from behind: same position/rotation, pushed to `-half`, `side={BackSide}`.
 
 ```tsx
 function Coin() {
@@ -276,7 +379,8 @@ function Coin() {
           depthWrite={false}
         />
       </mesh>
-      <mesh position={[0, 0, -half]} rotation={[0, Math.PI, 0]}>
+      {/* Same plane seen from behind: silhouette matches the rim exactly. */}
+      <mesh position={[0, 0, -half]}>
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
         <meshStandardMaterial
           map={colorTexture}
@@ -285,7 +389,7 @@ function Coin() {
           metalness={0.15}
           roughness={0.35}
           envMapIntensity={0.4}
-          side={FrontSide}
+          side={BackSide}
           transparent
           depthWrite={false}
         />
@@ -365,14 +469,15 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 ## Common pitfalls
 
 - **DO NOT use CircleGeometry** for the face — its UV mapping mirrors the texture. Always use PlaneGeometry.
-- **DO NOT flip UVs** — PlaneGeometry UVs are correct by default. Flipping causes mirrored text.
+- **DO NOT flip UVs or rotate the back face by PI** — both mirror the back silhouette against the rim. The back face is the front plane moved to `-half` with `side={BackSide}`.
 - **Suspense MUST be inside `<Canvas>`** — R3F's `useTexture` suspends within its own reconciler. An outer Suspense won't catch it and the component will flash/disappear.
 - **Use `DoubleSide` on the rim material** — the perimeter winding creates mixed normal directions. DoubleSide ensures all faces render regardless.
 - **Use `depthWrite={false}`** on the transparent face materials — prevents z-fighting between front and back faces during rotation.
 - **Check the actual file format** — `.png` files are sometimes JPEG internally. JPEG has no alpha, so transparency must always be generated from brightness.
 - **Normal maps MUST use `LinearSRGBColorSpace`** — setting `SRGBColorSpace` on a normal map gamma-corrects the direction vectors, producing incorrect lighting and a flat appearance.
 - **`preserveDrawingBuffer: true` enables screenshots** — without it, `toDataURL()` returns blank frames. Can be set to `false` for slightly better GPU performance if screenshots aren't needed.
-- **DO NOT test `alpha > 0` in `extractPerimeter`** — low-alpha compression/dithering noise in "transparent" regions will pass that test and drag the outline out toward the image border, producing a stray strip on the finished rim. Threshold at a real opacity cutoff and drop tiny detached specks (not just "keep the largest component" — a multi-part logo like an icon plus a separate wordmark has more than one real piece, and all of them must survive).
+- **DO NOT test `alpha > 0` in `extractPerimeter`** — low-alpha compression/dithering noise in "transparent" regions will pass that test and survive as its own stray component. Threshold at a real opacity cutoff and drop tiny detached specks (not just "keep the largest component" — a multi-part logo like an icon plus a separate wordmark has more than one real piece, and all of them must survive).
+- **DO NOT row-scan for left/right edges per row** — that only traces a correct outline for row-convex shapes. On a real logo it bridges concave gaps: a solid bar spans the empty space between two raised wingtips, and flat "shelves" appear wherever a tail or fin separates from the body within a row. Trace each component's actual contour (Moore-neighbour boundary tracing) instead.
 
 ## Rim color customization
 
