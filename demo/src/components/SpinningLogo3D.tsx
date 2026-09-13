@@ -2,6 +2,7 @@ import { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, useTexture } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
+import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
 import { computeCoinFaces } from '../lib/coinFaces'
 import {
@@ -134,6 +135,16 @@ function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: nu
   )
 }
 
+/**
+ * `sunset` — the default preset (see App.tsx) — ships self-hosted, since
+ * defaulting to it means every first visit pays its fetch cost. Every other
+ * preset still goes through drei's own CDN loader on demand.
+ */
+function CoinEnvironment({ envPreset }: { envPreset: EnvPreset }) {
+  if (envPreset === 'sunset') return <Environment files={sunsetHdrUrl} />
+  return <Environment preset={envPreset} />
+}
+
 export interface SpinningLogo3DProps {
   logoUrl: string
   envPreset: EnvPreset
@@ -154,12 +165,17 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1 }: Spinn
       <directionalLight position={[0, 0, -5]} intensity={0.5} color="#0ea5e9" />
       {/*
         Suspense MUST live inside Canvas — useTexture suspends in R3F's own
-        reconciler, and an outer Suspense won't catch it. Environment also
-        suspends while it fetches its HDR map, so it shares this boundary
-        rather than risking an unhandled suspend above the Canvas tree.
+        reconciler, and an outer Suspense won't catch it. Two SEPARATE
+        boundaries (not one shared by both): the coin's own texture usually
+        resolves well before the environment map does, so splitting them
+        lets the coin render immediately instead of waiting on Environment's
+        own suspend (issue #13 — the coin used to only appear once the CDN
+        HDR finished loading).
       */}
       <Suspense fallback={null}>
-        <Environment preset={envPreset} />
+        <CoinEnvironment envPreset={envPreset} />
+      </Suspense>
+      <Suspense fallback={null}>
         <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} />
       </Suspense>
     </Canvas>
