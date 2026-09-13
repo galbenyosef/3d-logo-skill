@@ -1,55 +1,57 @@
-/* Wipeout livery — Designers Republic-style racing graphics for an
-   anti-gravity-coin demo. Design budget (frozen contract, shared with a
-   sibling project): 2 font families, 3 sizes, 2 weights actually in use
-   (400/500 — nothing >= 600). See lean-ui + .impeccable.md. */
+/* STRATOS — anti-grav racing HUD above a cloud deck at dusk.
+   Wipeout survives only as accents (Michroma caps, mono `//` telemetry,
+   `›››` chevrons) blended into a dreamy twilight sky. Frozen token contract
+   (shared with a sibling project — do not change the values below):
+   sky gradient stops, cloud colors, glass panel formula, text colors,
+   signal yellow / cyan, and the 2-family / 3-size / 3-weight type budget
+   (nothing >= 600). See lean-ui + .impeccable.md. */
 :root {
   color-scheme: dark;
 
-  --bg: #0b0b0d;
-  /* Faint registration-grid dots over the base black, like a print sheet's
-     alignment grid — texture without touching the frozen background hex. */
-  --bg-vignette:
-    radial-gradient(circle, rgba(242, 240, 230, 0.06) 1px, transparent 1.5px) 0 0 / 28px 28px,
-    var(--bg);
-  --surface: #151518;
-  --surface-raised: #1c1c21;
-  --border: #2a2a30;
-  --border-strong: #3d3d46;
-  --text: #f2f0e6;
-  --text-dim: #9a988f;
-  /* #85837a, not the darker value an earlier pass used — that one sat at
-     ~3.6:1 against --bg, under the 4.5:1 AA floor for the small print it's
-     used on (stage hint, control notes, footer). This clears ~5.2:1. */
-  --text-faint: #85837a;
+  /* ---- Frozen: sky + cloud + glass + text + signal colors ---- */
+  --sky-top: #14163a;
+  --sky-mid: #3b3f8f;
+  --sky-pink: #c98fb5;
+  --sky-horizon: #ffc9a3;
+  --cloud: #f6eeff;
+  --cloud-shadow: #b9a8e0;
+
+  --glass-bg: rgba(20, 22, 58, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-blur: 18px;
+  --glass-radius: 14px;
+
+  --text: #ffffff;
+  --text-dim: rgba(240, 236, 255, 0.72);
   --accent: #ffe14d;
+  --accent-ink: #14163a;
   --accent-2: #2ee6ff;
-  --accent-ink: #0b0b0d;
-  --accent-2-ink: #05191c;
-  --danger: #ff6b57;
+  --accent-2-ink: #04222a;
+  --danger: #ff9a86;
   --danger-ink: #2a1310;
 
-  /* Display face: wide, geometric, all-caps only — headings + huge section
-     numerals. Body/UI/code face: JetBrains Mono, self-hosted (see main.tsx),
-     no Google Fonts requests. */
-  --font-sans: 'Michroma', 'Arial Narrow', sans-serif;
+  /* HUD telemetry chips float over moving sky/cloud, not fixed glass — a
+     denser, purpose-tuned tint (not the frozen --glass-bg) keeps every
+     label at ~7:1+ against cloud white, sky pink, or the coin glow. */
+  --hud-bg: rgba(20, 22, 58, 0.72);
+
+  /* ---- Type: 2 families, 3 sizes, 2 real weights (nothing >= 600) ---- */
+  --font-display: 'Michroma', 'Arial Narrow', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --text-small: 11px;
+  --text-xs: 11px;
   --text-body: 15px;
-  /* Reused by the hero h1, every section h2, AND the giant section numerals —
-     the budget is exactly 3 sizes, so a numeral gets its "huge" read from
-     stroke-only rendering and layout, not a 4th size token. */
-  --text-display: clamp(2.25rem, 1.5rem + 3.2vw, 4.5rem);
+  --text-display: clamp(1.85rem, 1.15rem + 3.1vw, 3.75rem);
 
   --weight-normal: 400;
   --weight-medium: 500;
 
-  /* Chamfered (cut-corner) silhouette replaces rounded corners everywhere —
-     no border-radius token survives in this file at all, by design. */
-  --chamfer-sm: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-  --chamfer-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  /* ---- Radii: one for controls, one for panels/containers ---- */
+  --radius-control: 10px;
+  --radius-panel: var(--glass-radius);
 
-  --hazard: repeating-linear-gradient(135deg, var(--accent) 0 14px, var(--bg) 14px 28px);
+  /* A single chamfer reserved for exactly one element: the primary CTA. */
+  --chamfer-cta: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -58,36 +60,35 @@
   --space-5: 24px;
   --space-6: 32px;
   --space-7: 48px;
-  --space-8: 64px;
+
+  --shadow-resting: 0 8px 30px -12px rgba(20, 22, 58, 0.55);
+  --shadow-raised: 0 14px 40px -10px rgba(20, 22, 58, 0.6);
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* The `hidden` attribute must always win over a component's own display
-   rule (e.g. a flex/grid tab panel) — otherwise a panel stays visible while
-   "hidden" is present. */
 [hidden] {
   display: none !important;
 }
 
-html,
-body {
+html {
   height: 100%;
+  scroll-snap-type: y proximity;
 }
 
 body {
+  height: 100%;
   margin: 0;
-  background: var(--bg-vignette);
+  background: var(--sky-top);
   color: var(--text);
-  /* JetBrains Mono is the body/UI/code face — Michroma (--font-sans) is
-     reserved for display headings and micro-labels only. */
   font-family: var(--font-mono);
   font-size: var(--text-body);
   font-weight: var(--weight-normal);
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 #root {
@@ -124,229 +125,190 @@ a {
   outline-offset: 2px;
 }
 
-.chamfer {
-  clip-path: var(--chamfer-sm);
+/* ---------- Sky: fixed skybox + parallax cloud deck + horizon haze ----------
+   Fixed (not scrolled) so the same gradient always frames screen 1's hero
+   text near the dark top and screen 2 reads its own darker ground below —
+   see .screen-2-ground. Clouds animate transform only; the umbrella
+   reduced-motion rule below collapses every animation to ~static. */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 38%, var(--sky-pink) 72%, var(--sky-horizon) 100%);
 }
 
-.chamfer-lg {
-  clip-path: var(--chamfer-lg);
+/* Darkens the upper sky further so kicker/headline/subline always clear
+   WCAG AA even before any glass sits behind them. */
+.sky-vignette-top {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 22, 58, 0.55) 0%, rgba(20, 22, 58, 0.22) 26%, transparent 48%);
 }
 
-/* clip-path clips its own outline along with the box, so an outside ring on
-   a chamfered element is invisible on the two cut corners. Every chamfered
-   interactive element gets the `.chamfer`/`.chamfer-lg` class and an inset
-   ring instead. */
-.chamfer:focus-visible {
-  outline-offset: -4px;
+/* Ground haze: an atmospheric fade near the bottom edge, independent of the
+   frozen glass-panel formula, so the dock's glass reliably clears AA even
+   where it sits over the pink/peach lower band. */
+.sky-haze-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42%;
+  background: linear-gradient(180deg, transparent 0%, rgba(20, 22, 58, 0.4) 100%);
 }
 
-.chamfer-lg:focus-visible {
-  outline-offset: -6px;
+.cloud-layer {
+  position: absolute;
+  left: -25%;
+  width: 150%;
+  will-change: transform;
 }
 
-/* ---------- Layout ---------- */
+.cloud-layer-1 {
+  bottom: -6%;
+  height: 30%;
+  opacity: 0.9;
+  filter: blur(5px);
+  background:
+    radial-gradient(42% 70% at 18% 60%, var(--cloud) 0%, transparent 72%),
+    radial-gradient(34% 55% at 42% 78%, var(--cloud-shadow) 0%, transparent 70%),
+    radial-gradient(48% 62% at 68% 55%, var(--cloud) 0%, transparent 72%),
+    radial-gradient(30% 50% at 90% 68%, var(--cloud-shadow) 0%, transparent 70%);
+  animation: drift-1 48s ease-in-out infinite alternate;
+}
+
+.cloud-layer-2 {
+  bottom: 14%;
+  height: 26%;
+  opacity: 0.72;
+  filter: blur(7px);
+  background:
+    radial-gradient(38% 60% at 10% 50%, var(--cloud-shadow) 0%, transparent 70%),
+    radial-gradient(46% 65% at 40% 62%, var(--cloud) 0%, transparent 72%),
+    radial-gradient(36% 55% at 74% 48%, var(--cloud-shadow) 0%, transparent 70%);
+  animation: drift-2 72s ease-in-out infinite alternate;
+}
+
+.cloud-layer-3 {
+  bottom: 32%;
+  height: 22%;
+  opacity: 0.5;
+  filter: blur(9px);
+  background:
+    radial-gradient(40% 60% at 28% 55%, var(--cloud) 0%, transparent 72%),
+    radial-gradient(34% 50% at 66% 45%, var(--cloud-shadow) 0%, transparent 70%);
+  animation: drift-3 100s ease-in-out infinite alternate;
+}
+
+.cloud-layer-4 {
+  top: 4%;
+  height: 18%;
+  opacity: 0.3;
+  filter: blur(11px);
+  background:
+    radial-gradient(36% 55% at 22% 45%, var(--cloud) 0%, transparent 72%),
+    radial-gradient(30% 45% at 60% 55%, var(--cloud) 0%, transparent 72%);
+  animation: drift-4 130s ease-in-out infinite alternate;
+}
+
+@keyframes drift-1 {
+  from { transform: translateX(-4%); }
+  to { transform: translateX(4%); }
+}
+@keyframes drift-2 {
+  from { transform: translateX(3%); }
+  to { transform: translateX(-5%); }
+}
+@keyframes drift-3 {
+  from { transform: translateX(-3%); }
+  to { transform: translateX(6%); }
+}
+@keyframes drift-4 {
+  from { transform: translateX(2%); }
+  to { transform: translateX(-4%); }
+}
+
+/* ---------- Glass: the one panel formula every control lives on ---------- */
+
+.glass-panel {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-resting);
+}
+
+/* ---------- Layout shell ---------- */
 
 .page {
   position: relative;
+  z-index: 1;
+}
+
+.screen {
+  position: relative;
+  scroll-snap-align: start;
+}
+
+/* ---------- Screen 1: hero + coin + dock, exactly one viewport ---------- */
+
+.screen-1 {
+  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
-  padding: var(--space-6) var(--space-4) var(--space-7);
-  gap: var(--space-7);
-  max-width: 1240px;
-  width: 100%;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  max-width: 1280px;
   margin: 0 auto;
 }
 
-/* ---------- Wipeout system: chrome, marks, labels ---------- */
-
-/* Pinned to the browser viewport, not the page — reads as the poster's own
-   crop marks rather than a component of any one section. */
-.viewport-frame {
-  position: fixed;
-  inset: 10px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.top-hazard {
-  height: 4px;
-  background: var(--hazard);
-  width: 100%;
-}
-
-.corner-bracket {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-}
-
-.corner-bracket.tl {
-  top: 0;
-  left: 0;
-  border-top: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-}
-
-.corner-bracket.tr {
-  top: 0;
-  right: 0;
-  border-top: 1px solid var(--border-strong);
-  border-right: 1px solid var(--border-strong);
-}
-
-.corner-bracket.bl {
-  bottom: 0;
-  left: 0;
-  border-bottom: 1px solid var(--border-strong);
-  border-left: 1px solid var(--border-strong);
-}
-
-.corner-bracket.br {
-  bottom: 0;
-  right: 0;
-  border-bottom: 1px solid var(--border-strong);
-  border-right: 1px solid var(--border-strong);
-}
-
-/* Larger, brighter variant for HUD framing (the 3D stage) rather than the
-   dim page-corner crop marks. */
-.corner-bracket--hud {
-  width: 26px;
-  height: 26px;
-}
-
-.corner-bracket--hud.tl,
-.corner-bracket--hud.tr,
-.corner-bracket--hud.bl,
-.corner-bracket--hud.br {
-  border-color: var(--accent-2);
-  border-width: 2px;
-}
-
-/* Decorative code-like micro-label, e.g. "3D-LOGO // AG-SYS 01". */
-.dr-label {
-  display: block;
-  font-family: var(--font-mono);
-  font-weight: var(--weight-medium);
-  font-size: var(--text-small);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.dr-label .dr-accent {
-  color: var(--accent);
-}
-
-/* A row of compressed chevrons used as a speed-line rule. Pure decoration —
-   always aria-hidden at the call site. */
-.chevron-row {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-weight: var(--weight-medium);
-  color: var(--accent);
-  letter-spacing: -0.03em;
-  font-size: var(--text-small);
-  line-height: 1;
-  user-select: none;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-/* Section heading block: giant outline numeral + tracked-out title + a
-   hazard-stripe rule filling the remaining width. Used once per major page
-   section (content is genuinely sequential — see HowItWorks) and reused as
-   a pure wayfinding device for the stage and get-it sections. */
-.section-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin: 0 0 var(--space-6);
-}
-
-.section-numeral {
-  flex-shrink: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-display);
-  line-height: 0.8;
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--border-strong);
-  text-stroke: 1.5px var(--border-strong);
-}
-
-.section-head-text {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-.section-title {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-display);
-  font-weight: var(--weight-normal);
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  color: var(--text);
-  text-wrap: balance;
-}
-
-.section-head-rule {
-  flex: 1 1 96px;
-  min-width: 96px;
-  height: 6px;
-  background: var(--hazard);
-  align-self: center;
-}
-
-@media (max-width: 640px) {
-  /* A wrapped multi-line title otherwise squeezes the rule to a sliver —
-     give it its own full-width row underneath instead. */
-  .section-head {
-    flex-wrap: wrap;
-  }
-
-  .section-head-rule {
-    flex-basis: 100%;
-    margin-top: var(--space-2);
-  }
-}
-
-/* ---------- Hero ---------- */
-
-.hero {
+.hero-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-4);
-  max-width: 720px;
-  padding-top: var(--space-4);
+  gap: var(--space-2);
+  max-width: 640px;
 }
 
-.hero-title {
+.kicker {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.kicker-accent {
+  color: var(--accent);
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--font-display);
   text-transform: uppercase;
   font-size: var(--text-display);
   font-weight: var(--weight-normal);
-  line-height: 0.98;
+  line-height: 1;
   letter-spacing: 0.01em;
   color: var(--text);
   text-wrap: balance;
 }
 
-/* One phrase per line — a free wrap split the longer headline mid-phrase. */
-.hero-title-line {
+.headline-line {
   display: block;
 }
 
-.hero-subline {
+.subline {
   margin: 0;
   font-size: var(--text-body);
   color: var(--text-dim);
-  max-width: 58ch;
+  max-width: 52ch;
 }
 
 .hero-actions {
@@ -354,235 +316,239 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
-.hero-cta {
-  padding: var(--space-3) var(--space-6);
-}
+/* ---------- Buttons: one shared base, chamfer reserved for the CTA ---------- */
 
-.hero-star {
+.btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-}
-
-/* Hero + live stage: one column stacked (stage right after the CTAs) below
-   1024px, side-by-side above it so the coin is never scrolled past. */
-.hero-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-@media (min-width: 1024px) {
-  .hero-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: center;
-    gap: var(--space-7);
-  }
-}
-
-/* ---------- Stage ---------- */
-
-.stage {
-  position: relative;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  min-height: 380px;
-  min-width: 0; /* grid items default to min-width:auto, which would let the
-                   canvas's intrinsic size block the track from shrinking */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  /* Bottom padding has to clear the SPIN/LOCAL ONLY badges, which are
-     absolutely positioned against the padding edge (not the content box) —
-     on a short mobile frame the hint text was landing right on top of them. */
-  padding: var(--space-4) var(--space-4) var(--space-8);
-  transition: box-shadow 0.15s ease;
-}
-
-.stage-dragging {
-  box-shadow: inset 0 0 0 1px var(--accent-2);
-}
-
-.stage-canvas {
-  width: 100%;
-  max-width: 560px;
-  min-width: 0;
-  aspect-ratio: 1 / 1;
-}
-
-.stage-hint {
-  margin: var(--space-4) 0 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-small);
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  text-align: center;
-}
-
-.stage-overlay {
-  position: absolute;
-  inset: var(--space-3);
-  clip-path: var(--chamfer-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 0 1px var(--accent);
-  background: rgba(11, 11, 13, 0.82);
-  color: var(--accent);
-  font-family: var(--font-sans);
-  text-transform: uppercase;
-  font-size: var(--text-body);
-  font-weight: var(--weight-normal);
-  letter-spacing: 0.04em;
-  pointer-events: none;
-}
-
-/* ---- Pit-lane HUD chips: telemetry readouts framing the stage ---- */
-
-.hud-chip {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
   gap: var(--space-2);
-  clip-path: var(--chamfer-sm);
-  background: rgba(21, 21, 24, 0.9);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
   font-family: var(--font-mono);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
-  font-size: var(--text-small);
   letter-spacing: 0.06em;
-  color: var(--text-dim);
-  margin: 0;
+  text-transform: uppercase;
+  max-width: 100%;
 }
 
-.hud-chip--accent {
+.btn-primary {
   background: var(--accent);
-  box-shadow: none;
   color: var(--accent-ink);
 }
 
-.stage-thumb {
-  left: var(--space-3);
-  top: var(--space-3);
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 84%, white);
 }
 
-.stage-thumb img {
+.btn-primary:focus-visible {
+  outline-color: var(--accent-ink);
+}
+
+/* The one deliberate chamfer in the whole design. */
+.hero-cta {
+  clip-path: var(--chamfer-cta);
+  padding: var(--space-3) var(--space-6);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--glass-border);
+}
+
+.btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--accent-2);
+}
+
+.btn-secondary {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-2);
+}
+
+/* ---------- Coin stage ---------- */
+
+.coin-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 34svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coin-glow {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(75%, 480px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 201, 163, 0.55) 0%, rgba(201, 143, 181, 0.32) 42%, transparent 72%);
+  filter: blur(36px);
+  animation: glow-pulse 7s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes glow-pulse {
+  from { opacity: 0.75; }
+  to { opacity: 1; }
+}
+
+.coin-canvas-wrap {
+  position: relative;
+  width: min(100%, 480px);
+  aspect-ratio: 1 / 1;
+  animation: coin-bob 5.5s ease-in-out infinite alternate;
+}
+
+@keyframes coin-bob {
+  from { transform: translateY(-3%); }
+  to { transform: translateY(3%); }
+}
+
+.coin-canvas-wrap canvas {
   display: block;
-  width: 22px;
-  height: 22px;
-  background: #05070a;
-  object-fit: contain;
 }
 
-.stage-thumb figcaption {
-  max-width: 22ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.drop-overlay {
+  position: absolute;
+  inset: var(--space-3);
+  border-radius: var(--radius-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--accent-2);
+  background: var(--hud-bg);
+  color: var(--accent-2);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: var(--text-body);
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: var(--space-4);
+  pointer-events: none;
+}
+
+/* ---- HUD telemetry: mono micro-labels + pause toggle, floating near the coin ---- */
+
+.hud-label {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--hud-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
   white-space: nowrap;
 }
 
-.stage-hud-top-right {
-  position: absolute;
-  right: var(--space-3);
-  top: var(--space-3);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.hud-label--tl {
+  top: 0;
+  left: 0;
 }
 
-.stage-hud-top-right .hud-chip {
-  position: static;
+.hud-label--bl {
+  bottom: 0;
+  left: 0;
 }
 
-.stage-hud-bl {
-  left: var(--space-3);
-  bottom: var(--space-3);
-}
-
-.stage-hud-br {
-  right: var(--space-3);
-  bottom: var(--space-3);
+.hud-label--br {
+  bottom: 0;
+  right: 0;
+  color: var(--accent-2);
 }
 
 .stage-pause {
-  /* relative, not static — it still flows normally inside
-     .stage-hud-top-right, but the hover-sweep ::after needs a positioned
-     ancestor to size itself against. */
-  position: relative;
-  overflow: hidden;
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  clip-path: var(--chamfer-sm);
-  background: rgba(21, 21, 24, 0.9);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
+  border-radius: 999px;
+  background: var(--hud-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   color: var(--text);
   cursor: pointer;
 }
 
 .stage-pause:hover {
-  box-shadow: inset 0 0 0 1px var(--accent-2);
+  border-color: var(--accent-2);
   color: var(--accent-2);
 }
 
 .stage-pause[aria-pressed='true'] {
-  color: var(--accent-ink);
   background: var(--accent-2);
-  box-shadow: none;
+  color: var(--accent-2-ink);
+  border-color: transparent;
 }
 
 .stage-pause[aria-pressed='true']:focus-visible {
-  outline-color: var(--accent-ink);
+  outline-color: var(--accent-2-ink);
 }
 
-.stage-pause:focus-visible {
-  outline-offset: -4px;
-}
+/* ---------- Dock: the frosted-glass control strip ---------- */
 
-/* ---------- Pit-board: horizontal controls strip ---------- */
-
-/* A pit-board, not a sidebar — the stage now lives in the hero, so its
-   controls run as a full-width strip underneath instead of a fixed-width
-   column beside it. Each group is a flexible column that wraps to its own
-   row once the strip gets too narrow to hold three side by side. */
-.pit-board {
+.dock {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-5) var(--space-6);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  padding: var(--space-5);
-}
-
-.pit-board .control-group {
-  flex: 1 1 220px;
-  min-width: 220px;
-}
-
-.pit-board .status {
-  flex-basis: 100%;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  flex: 0 0 auto;
 }
 
 .control-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
+}
+
+.control-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.control-row .control-group {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .control-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -591,44 +557,54 @@ a {
 
 .control-note {
   margin: 0;
-  font-size: var(--text-small);
-  color: var(--text-faint);
+  font-size: var(--text-xs);
+  color: var(--text-dim);
 }
 
 .preset-row {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  padding-bottom: 2px;
 }
 
-.preset-btn {
+.preset-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  clip-path: var(--chamfer-sm);
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border);
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   font-weight: var(--weight-normal);
   color: var(--text);
+  white-space: nowrap;
 }
 
-.preset-btn img {
-  background: #05070a;
+.chip img {
   display: block;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.preset-btn:hover {
-  box-shadow: inset 0 0 0 1px var(--border-strong);
+.chip:hover {
+  border-color: var(--accent-2);
 }
 
-.preset-btn[aria-pressed='true'] {
-  box-shadow: inset 0 0 0 1px var(--accent);
-  background: var(--accent-ink);
-  color: var(--accent);
+.chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
 }
 
 .upload-row {
@@ -637,13 +613,11 @@ a {
 
 .select {
   width: 100%;
-  clip-path: var(--chamfer-sm);
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
   padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
   color: var(--text);
-  /* Chamfered select still needs to look pickable — a custom arrow replaces
-     the OS default, which some engines mis-position once clip-path applies. */
   appearance: none;
   background-image: linear-gradient(45deg, transparent 50%, var(--accent-2) 50%),
     linear-gradient(135deg, var(--accent-2) 50%, transparent 50%);
@@ -655,76 +629,17 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.select:focus-visible {
-  outline-offset: -4px;
-}
-
-/* Chamfered button system. clip-path replaces border-radius entirely, and a
-   `border` would draw a rectangle that clip-path then crops unevenly at the
-   two cut corners — so "outlined" variants fake the edge with an INSET
-   box-shadow instead, which gets clipped cleanly along the chamfer. */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  clip-path: var(--chamfer-sm);
-  padding: var(--space-2) var(--space-4);
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: var(--text-small);
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text);
-  max-width: 100%;
-}
-
-.btn.mono {
-  overflow-wrap: anywhere;
-}
-
-.btn-ghost {
-  color: var(--text-dim);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-}
-
-.btn-ghost:hover {
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--accent-2);
-}
-
-.btn-primary {
-  background: var(--accent);
-  box-shadow: none;
-  color: var(--accent-ink);
-}
-
-.btn-primary:hover {
-  background: color-mix(in srgb, var(--accent) 82%, white);
-}
-
-/* The default focus ring is accent-2 (cyan) — good on every dark surface,
-   but cyan-on-yellow and cyan-on-cyan both sit under 1.2:1 contrast. Any
-   control that fills its own background with an accent color swaps the
-   ring to accent-ink instead. */
-.btn-primary:focus-visible {
-  outline-color: var(--accent-ink);
+  font-size: var(--text-xs);
 }
 
 .status {
   margin: 0;
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   color: var(--text-dim);
-  min-height: 1.5em;
+  min-height: 1.4em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status[data-kind='error'] {
@@ -735,16 +650,201 @@ a {
   color: var(--accent);
 }
 
-/* ---------- Get it in your project ---------- */
+/* Scroll cue at the foot of screen 1. */
+.scroll-cue {
+  align-self: center;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: cue-bob 2.2s ease-in-out infinite alternate;
+}
 
+.scroll-cue:hover {
+  color: var(--text);
+}
 
-.get-it-grid {
+.scroll-cue-chevrons {
+  color: var(--accent-2);
+  font-size: var(--text-body);
+  transform: rotate(90deg);
+  line-height: 1;
+}
+
+@keyframes cue-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(4px); }
+}
+
+/* ---------- Desktop: two-column screen 1 ---------- */
+
+@media (min-width: 1024px) {
+  .screen-1 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-areas: 'copy stage' 'dock stage' 'cue stage';
+    align-content: center;
+    align-items: start;
+    column-gap: var(--space-7);
+    row-gap: var(--space-4);
+    padding: var(--space-6) var(--space-6) var(--space-5);
+  }
+
+  .hero-copy {
+    grid-area: copy;
+    align-self: end;
+    padding-top: var(--space-6);
+  }
+
+  .dock {
+    grid-area: dock;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .coin-stage {
+    grid-area: stage;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .scroll-cue {
+    grid-area: cue;
+    justify-self: start;
+    align-self: end;
+  }
+}
+
+/* ---------- Mobile: dock-anchored bottom strip ---------- */
+
+@media (max-width: 1023px) {
+  .hero-copy {
+    text-align: left;
+  }
+
+  .headline {
+    font-size: clamp(1.7rem, 1.2rem + 4.5vw, 2.6rem);
+  }
+
+  .coin-stage {
+    min-height: 38svh;
+    max-height: 45svh;
+  }
+
+  .control-row {
+    flex-direction: row;
+  }
+}
+
+/* ---------- Short viewports: compress before anything overflows. Comes
+   after the mobile block so it wins the cascade at narrow + short
+   viewports (e.g. iPhone SE at 375x667). ---------- */
+
+@media (max-height: 760px) {
+  .screen-1 {
+    gap: var(--space-2);
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .coin-stage {
+    min-height: 30svh;
+    max-height: 38svh;
+  }
+
+  .subline {
+    display: none;
+  }
+}
+
+@media (max-height: 620px) {
+  .kicker {
+    display: none;
+  }
+
+  .coin-stage {
+    min-height: 24svh;
+    max-height: 30svh;
+  }
+
+  .hero-actions {
+    gap: var(--space-2);
+  }
+
+  .hero-cta {
+    padding: var(--space-2) var(--space-4);
+  }
+}
+
+/* ---------- Screen 2: install, how it works, footer ---------- */
+
+.screen-2 {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+}
+
+/* A settling "ground" beneath the horizon — the dusk sky continues faintly
+   through the fixed .sky layer, but this dark scrim guarantees every glass
+   panel and label in screen 2 clears AA regardless of scroll position. */
+.screen-2-ground {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 22, 58, 0.72) 0%, rgba(20, 22, 58, 0.92) 100%);
+  z-index: -1;
+}
+
+.screen-2-inner {
+  position: relative;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
 }
 
-@media (min-width: 1024px) {
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+
+.section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 1.05rem + 1vw, 1.85rem);
+  font-weight: var(--weight-normal);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.section-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.get-it-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+@media (min-width: 900px) {
   .get-it-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -759,18 +859,19 @@ a {
 .tablist {
   display: flex;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-4);
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: var(--weight-normal);
@@ -780,12 +881,12 @@ a {
 
 .tab:hover {
   color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
+  border-color: var(--accent-2);
 }
 
 .tab[aria-selected='true'] {
   background: var(--accent);
-  box-shadow: none;
+  border-color: transparent;
   color: var(--accent-ink);
   font-weight: var(--weight-medium);
 }
@@ -802,8 +903,8 @@ a {
 
 .tab-note {
   margin: 0;
-  font-size: var(--text-small);
-  color: var(--text-faint);
+  font-size: var(--text-xs);
+  color: var(--text-dim);
 }
 
 .code-row {
@@ -815,11 +916,11 @@ a {
 .code-block {
   flex: 1;
   min-width: 0;
-  clip-path: var(--chamfer-sm);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
   padding: var(--space-3);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   color: var(--text);
   overflow-x: auto;
   white-space: pre;
@@ -839,10 +940,6 @@ a {
     justify-content: center;
   }
 
-  /* Wrap long commands/prompts instead of clipping them at the viewport
-     edge — the copy button still copies the exact source string, which
-     never touches this display-only wrapping. Declared after the base
-     .code-block/.code-snippet rules so it actually wins the cascade. */
   .code-block {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -855,12 +952,12 @@ a {
   align-items: center;
   gap: var(--space-1);
   flex-shrink: 0;
-  clip-path: var(--chamfer-sm);
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
   color: var(--text-dim);
   cursor: pointer;
@@ -868,11 +965,7 @@ a {
 
 .copy-btn:hover {
   color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--accent-2);
-}
-
-.copy-btn:focus-visible {
-  outline-offset: -4px;
+  border-color: var(--accent-2);
 }
 
 .get-it-usage {
@@ -885,7 +978,7 @@ a {
 .get-it-label {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -910,16 +1003,17 @@ a {
 
 .how-step-index {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
   font-family: var(--font-mono);
   font-weight: var(--weight-medium);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   color: var(--accent-2);
 }
 
@@ -932,15 +1026,15 @@ a {
 
 .how-step-body {
   margin: 0;
-  font-size: var(--text-small);
-  color: var(--text-faint);
+  font-size: var(--text-xs);
+  color: var(--text-dim);
 }
 
 /* ---------- Footer ---------- */
 
 .footer {
-  font-size: var(--text-small);
-  color: var(--text-faint);
+  font-size: var(--text-xs);
+  color: var(--text-dim);
   text-align: center;
 }
 
@@ -950,13 +1044,10 @@ a {
 
 /* ---------- Touch targets ---------- */
 
-/* WCAG 2.5.5 / Apple & Material guidance: interactive controls want >=44px
-   on touch input, or on narrow screens where fingers (not a mouse) are the
-   likely pointer even if the device reports "fine". */
 @media (pointer: coarse), (max-width: 600px) {
   .btn,
   .tab,
-  .preset-btn,
+  .chip,
   .copy-btn {
     min-height: 44px;
   }
@@ -967,78 +1058,25 @@ a {
   }
 }
 
-/* ---------- Motion ---------- */
+/* ---------- Intro: a soft fade from the sky's own top color ---------- */
 
-/* Speed-line hover sweep: a soft diagonal highlight travels across every
-   chamfered control. Shared by every button-like surface rather than
-   duplicated per component. clip-path on the host already crops this to
-   the chamfer, so no separate overflow/position rules are needed beyond
-   the `position: relative` each of these already carries. */
-.btn::after,
-.preset-btn::after,
-.tab::after,
-.copy-btn::after,
-.stage-pause::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
-  transform: translateX(-120%);
-  transition: transform 0.45s ease;
-  pointer-events: none;
-}
-
-.btn:hover::after,
-.preset-btn:hover::after,
-.tab:hover::after,
-.copy-btn:hover::after,
-.stage-pause:hover::after {
-  transform: translateX(120%);
-}
-
-.preset-btn,
-.tab,
-.copy-btn {
-  position: relative;
-  overflow: hidden;
-}
-
-/* One-shot intro wipe: a full-viewport panel collapses upward on load,
-   like a pit-lane shutter. Removed from the DOM entirely once it finishes
-   (see App.tsx onAnimationEnd) rather than left sitting inert. */
 .intro-wipe {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: var(--bg);
+  background: var(--sky-top);
   pointer-events: none;
-  animation: intro-wipe-collapse 0.7s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation: intro-fade 0.6s ease-out forwards;
 }
 
-.intro-wipe::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 6px;
-  background: var(--hazard);
+@keyframes intro-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
-@keyframes intro-wipe-collapse {
-  from {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-  }
-  to {
-    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
-  }
-}
-
-/* The umbrella rule: every transition and animation on the page — the
-   hover sweep and intro wipe included — collapses to effectively instant
-   under reduced motion, satisfying "disabled" without a second code path
-   per effect. Pointer-events on .intro-wipe are already none, so even its
-   near-zero-duration frame can't block interaction. */
+/* Every animation on the page collapses to effectively instant under
+   reduced motion — clouds, coin bob, glow pulse and scroll cue included —
+   satisfying "static" without a second code path per effect. */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
