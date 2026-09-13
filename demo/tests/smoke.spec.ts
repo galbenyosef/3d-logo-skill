@@ -31,7 +31,10 @@ test.describe('3D logo skill demo', () => {
 
     await page.goto('/')
 
-    const canvas = page.locator('canvas')
+    // Scoped: the page now has two canvases (the coin's three.js canvas and
+    // the sky's breeze shader, see tests/sky.spec.ts) — `canvas` alone is no
+    // longer a unique locator.
+    const canvas = page.locator('.coin-canvas-wrap canvas')
     await expect(canvas).toBeVisible()
 
     // The canvas actually occupies real space (not a collapsed / blank element).
@@ -173,7 +176,7 @@ test.describe('3D logo skill demo', () => {
     const page = await context.newPage()
     await page.goto('/')
 
-    const canvas = page.locator('canvas')
+    const canvas = page.locator('.coin-canvas-wrap canvas')
     await expect(canvas).toBeVisible()
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(800)
@@ -193,7 +196,7 @@ test.describe('3D logo skill demo', () => {
   test('captures visual verification screenshots at 3 widths', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/')
-    await expect(page.locator('canvas')).toBeVisible()
+    await expect(page.locator('.coin-canvas-wrap canvas')).toBeVisible()
     // The Environment HDR loads over the network — wait for it (and the coin
     // texture pipeline) to settle before trusting a frame is fully painted.
     await page.waitForLoadState('networkidle')
