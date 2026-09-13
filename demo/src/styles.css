@@ -291,6 +291,11 @@ a {
 .screen-1 {
   min-height: 100vh;
   min-height: 100svh;
+  /* First-paint fallback for the sun disc, before useSunPosition's
+     ResizeObserver has measured the coin (lib/useSunPosition.ts). */
+  --sun-x: 70%;
+  --sun-y: 38%;
+  --sun-r: 90px;
 }
 
 /* The max-width column lives here, one level in from .screen-1 itself, so

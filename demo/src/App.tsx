@@ -9,6 +9,7 @@ import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets
 import { isAllowedImageType } from './lib/fileValidation'
 import { prepareUploadedLogo } from './lib/imagePipeline'
 import { PRESET_LOGOS, presetUrl } from './lib/presetLogos'
+import { useSunPosition } from './lib/useSunPosition'
 
 const REPO_URL = 'https://github.com/hasuwini77/3d-logo-skill'
 
@@ -60,6 +61,9 @@ export default function App() {
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
+  // Positions Sky.tsx's sun disc behind the coin's lower half (--sun-x/y/r
+  // on .screen-1) — see lib/useSunPosition.ts.
+  useSunPosition()
   // Reduced motion used to drop to 12% speed, which on the many iPhones that
   // ship Reduce Motion on by default read as "broken", not "gentle" (issue #5).
   // 50% keeps the coin legibly slower without looking stuck; the explicit
