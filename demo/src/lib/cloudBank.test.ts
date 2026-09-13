@@ -49,6 +49,18 @@ describe('generateBankProfile', () => {
     const profile = generateBankProfile(41, { width: 1200, sampleSpacing: 2 })
     expect(profile.length).toBeGreaterThanOrEqual(500)
   })
+
+  it('has no cliffs — adjacent samples never jump more than ~0.04*height', () => {
+    const height = 300
+    const maxJump = 0.04 * height
+    for (const seed of [1, 41, 42, 43, 999]) {
+      const profile = generateBankProfile(seed, { height })
+      for (let i = 1; i < profile.length; i++) {
+        const dy = Math.abs(profile[i].y - profile[i - 1].y)
+        expect(dy, `seed ${seed}, sample ${i}`).toBeLessThanOrEqual(maxJump + 1e-6)
+      }
+    }
+  })
 })
 
 describe('generateCloudBankTile', () => {
