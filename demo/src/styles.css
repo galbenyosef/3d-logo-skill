@@ -22,6 +22,11 @@
   --glass-border: rgba(255, 255, 255, 0.18);
   --glass-blur: 18px;
   --glass-radius: 14px;
+  /* Darker glass for small controls that float directly on the painted sky
+     (pause toggle, secondary hero button): the dock-strength --glass-bg
+     washes out over the bright peach band. */
+  --glass-strong: rgba(20, 22, 58, 0.62);
+  --glass-strong-hover: rgba(20, 22, 58, 0.78);
 
   --text: #ffffff;
   --text-dim: rgba(240, 236, 255, 0.72);
@@ -363,14 +368,15 @@ a {
 }
 
 .btn-ghost {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-dim);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  color: var(--text);
   text-decoration: none;
 }
 
 .btn-ghost:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--glass-strong-hover);
 }
 
 /* The star icon is the one place signal yellow survives — a tiny, natural
@@ -450,7 +456,7 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(20, 22, 58, 0.62);
+  background: var(--glass-strong);
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--control-border);
@@ -462,7 +468,7 @@ a {
 
 .stage-pause:hover {
   transform: translateY(-1px);
-  background: rgba(20, 22, 58, 0.78);
+  background: var(--glass-strong-hover);
   box-shadow: var(--control-highlight), var(--control-glow);
 }
 
