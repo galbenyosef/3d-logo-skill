@@ -21,16 +21,19 @@ export function Hero({ onTryLogo }: HeroProps) {
 
   return (
     <header className="hero">
+      <p className="dr-label">
+        <span className="dr-accent">3D-LOGO</span> // AG-SYS 01 — COIN FORGE
+      </p>
       <h1 className="hero-title">Turn any flat logo into a 3D spinning coin</h1>
       <p className="hero-subline">
         An agent skill for Claude Code, Cursor, Codex, Copilot, Gemini CLI, and 50+ more agents — one prompt does the
         rest.
       </p>
       <div className="hero-actions">
-        <button type="button" className="btn btn-primary hero-cta" onClick={onTryLogo}>
+        <button type="button" className="btn btn-primary chamfer hero-cta" onClick={onTryLogo}>
           Try your logo
         </button>
-        <a className="btn btn-ghost hero-star" href={REPO_URL} target="_blank" rel="noreferrer">
+        <a className="btn btn-ghost chamfer hero-star" href={REPO_URL} target="_blank" rel="noreferrer">
           <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden="true" focusable="false">
             <path
               d="M8 .8l2.06 4.53 4.94.5-3.73 3.4.99 4.87L8 11.7 3.74 14.1l.99-4.87-3.73-3.4 4.94-.5z"
