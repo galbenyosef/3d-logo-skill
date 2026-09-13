@@ -148,10 +148,15 @@ export default function App() {
             <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
             <div className="coin-stage" aria-label={`3D preview: ${activeLogo.label}`}>
-              <div className="coin-canvas-wrap">
-                <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
+              {/* The anchor holds the coin's size and never moves; the canvas
+                  bobs inside it. Pinning the pause toggle to the anchor keeps
+                  it on the coin's corner without bobbing along (issue #21). */}
+              <div className="coin-anchor">
+                <div className="coin-canvas-wrap">
+                  <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
+                </div>
+                <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
               </div>
-              <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
 
               {isDraggingOver && (
                 <div className="drop-overlay" aria-hidden="true">

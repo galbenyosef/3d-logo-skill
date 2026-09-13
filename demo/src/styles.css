@@ -394,9 +394,15 @@ a {
   justify-content: center;
 }
 
-.coin-canvas-wrap {
+.coin-anchor {
   position: relative;
   width: min(100%, 480px);
+  aspect-ratio: 1 / 1;
+}
+
+.coin-canvas-wrap {
+  position: relative;
+  width: 100%;
   aspect-ratio: 1 / 1;
   animation: coin-bob 5.5s ease-in-out infinite alternate;
 }
@@ -431,19 +437,24 @@ a {
   pointer-events: none;
 }
 
+/* Sits on the coin's bottom-right corner (usually empty space around a
+   logo silhouette) in the dock's dark glass, so it stays legible over the
+   bright sun and the painted clouds alike. */
 .stage-pause {
   position: absolute;
-  top: 0;
   right: 0;
+  bottom: 0;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--control-fill);
+  background: rgba(20, 22, 58, 0.62);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--control-border);
-  box-shadow: var(--control-highlight);
+  box-shadow: var(--control-highlight), var(--shadow-resting);
   color: var(--text);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
@@ -451,7 +462,7 @@ a {
 
 .stage-pause:hover {
   transform: translateY(-1px);
-  background: var(--control-fill-strong);
+  background: rgba(20, 22, 58, 0.78);
   box-shadow: var(--control-highlight), var(--control-glow);
 }
 
@@ -672,7 +683,7 @@ a {
     min-height: 0;
   }
 
-  .coin-canvas-wrap {
+  .coin-anchor {
     width: min(100%, 640px, 72svh);
   }
 }
@@ -701,7 +712,7 @@ a {
     max-height: 36svh;
   }
 
-  .coin-canvas-wrap {
+  .coin-anchor {
     width: min(100%, 480px, 30svh);
   }
 
@@ -731,7 +742,7 @@ a {
     max-height: 28svh;
   }
 
-  .coin-canvas-wrap {
+  .coin-anchor {
     width: min(100%, 480px, 22svh);
   }
 
@@ -746,7 +757,7 @@ a {
     max-height: 22svh;
   }
 
-  .coin-canvas-wrap {
+  .coin-anchor {
     width: min(100%, 480px, 18svh);
   }
 }
