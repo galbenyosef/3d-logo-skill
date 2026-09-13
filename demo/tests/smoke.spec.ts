@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-const SCREENSHOT_DIR =
-  '/private/tmp/claude-501/-Users-hasuwini-Documents-Frontend/c350e899-0c5c-42c3-ace1-783f28c15666/scratchpad/landing-shots'
+// Left over from the session that wrote this test — a scratchpad dir from a
+// prior Claude Code session id, which doesn't exist on any other machine.
+// An env var with a same-repo fallback keeps the test portable.
+const SCREENSHOT_DIR = process.env.PLAYWRIGHT_SCREENSHOT_DIR ?? 'test-results/visual'
 
 test.describe('3D logo skill demo', () => {
   test('renders the coin, swaps presets, accepts uploads, and rejects non-images', async ({ page }) => {
@@ -22,9 +24,9 @@ test.describe('3D logo skill demo', () => {
     expect(box?.height ?? 0).toBeGreaterThan(50)
 
     const status = page.getByRole('status')
-    await expect(status).toContainText('Phoenix Shield')
+    await expect(status).toContainText('AG Shield')
 
-    for (const label of ['Cosmic Eye', 'Wolf Compass', 'Phoenix Shield']) {
+    for (const label of ['Hazard Wing', 'Phoenix Shield', 'Cosmic Eye', 'Wolf Compass', 'AG Shield']) {
       await page.getByRole('button', { name: label }).click()
       await expect(status).toContainText(label)
     }
@@ -48,7 +50,7 @@ test.describe('3D logo skill demo', () => {
 
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('3D spinning coin')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('3D out')
     await expect(page.getByRole('link', { name: /Star on GitHub/ })).toBeVisible()
 
     // The file chooser opens directly — no scrolling/focusing detour needed.

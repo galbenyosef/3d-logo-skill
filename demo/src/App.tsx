@@ -51,6 +51,9 @@ export default function App() {
   })
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  // One-shot intro wipe (see .intro-wipe): removed from the DOM once its
+  // collapse animation finishes so it doesn't sit around as inert markup.
+  const [introDone, setIntroDone] = useState(false)
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
@@ -120,36 +123,70 @@ export default function App() {
   }, [])
 
   return (
-    <div className="page">
-      <Hero onTryLogo={() => fileInputRef.current?.click()} />
+    <>
+      {!introDone && <div className="intro-wipe" aria-hidden="true" onAnimationEnd={() => setIntroDone(true)} />}
+      <div className="viewport-frame" aria-hidden="true">
+        <span className="corner-bracket tl" />
+        <span className="corner-bracket tr" />
+        <span className="corner-bracket bl" />
+        <span className="corner-bracket br" />
+      </div>
+      <div className="top-hazard" aria-hidden="true" />
+      <div className="page">
+        <div className="hero-grid">
+          <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
-      <main className="layout">
-        <section
-          className={`stage${isDraggingOver ? ' stage-dragging' : ''}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          aria-label={`3D preview: ${activeLogo.label}`}
-        >
-          <div className="stage-canvas" aria-hidden="true">
-            <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
-          </div>
-          <figure className="stage-thumb">
-            <img src={activeLogo.url} alt="" width={40} height={40} />
-            <figcaption>Your PNG</figcaption>
-          </figure>
-          <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
-          <p className="stage-hint">Drag any logo here — it never leaves your browser</p>
-          {isDraggingOver && (
-            <div className="stage-overlay" aria-hidden="true">
-              Drop to use this logo
+          <section
+            className={`stage chamfer-lg${isDraggingOver ? ' stage-dragging' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            aria-label={`3D preview: ${activeLogo.label}`}
+          >
+            <span className="corner-bracket corner-bracket--hud tl" aria-hidden="true" />
+            <span className="corner-bracket corner-bracket--hud tr" aria-hidden="true" />
+            <span className="corner-bracket corner-bracket--hud bl" aria-hidden="true" />
+            <span className="corner-bracket corner-bracket--hud br" aria-hidden="true" />
+
+            <div className="stage-canvas" aria-hidden="true">
+              <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
             </div>
-          )}
-        </section>
 
-        <aside className="controls">
+            <figure className="stage-thumb hud-chip">
+              <img src={activeLogo.url} alt="" width={28} height={28} />
+              <figcaption>{activeLogo.isUpload ? activeLogo.label : `FILE // ${activeLogo.label}`}</figcaption>
+            </figure>
+
+            <div className="stage-hud-top-right">
+              <span className="hud-chip" aria-hidden="true">
+                ENV // {envPreset.toUpperCase()}
+              </span>
+              <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
+            </div>
+
+            <span className="hud-chip stage-hud-bl" aria-hidden="true">
+              SPIN // {isPaused ? 'PAUSED' : reducedMotion ? '0.5X · REDUCED' : '1.0X'}
+            </span>
+
+            <span className="hud-chip hud-chip--accent stage-hud-br" aria-hidden="true">
+              LOCAL ONLY
+            </span>
+
+            <p className="stage-hint">Drag any logo here — it never leaves your browser</p>
+            {isDraggingOver && (
+              <div className="stage-overlay" aria-hidden="true">
+                Drop to use this logo
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className="pit-board chamfer-lg">
           <div className="control-group">
             <span className="control-label" id="presets-label">
+              <span className="chevron-row" aria-hidden="true">
+                {'>'}
+              </span>{' '}
               Sample logos
             </span>
             <div className="preset-row" role="group" aria-labelledby="presets-label">
@@ -157,7 +194,7 @@ export default function App() {
                 <button
                   key={preset.id}
                   type="button"
-                  className="preset-btn"
+                  className="preset-btn chamfer"
                   aria-pressed={!activeLogo.isUpload && activeLogo.label === preset.label}
                   onClick={() => handlePreset(preset.file, preset.label)}
                 >
@@ -170,10 +207,17 @@ export default function App() {
 
           <div className="control-group">
             <label className="control-label" htmlFor="logo-upload">
+              <span className="chevron-row" aria-hidden="true">
+                {'>'}
+              </span>{' '}
               Use your own logo
             </label>
             <div className="upload-row">
-              <button type="button" className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
+              <button
+                type="button"
+                className="btn btn-primary chamfer"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Choose an image
               </button>
               <input
@@ -190,6 +234,9 @@ export default function App() {
 
           <div className="control-group">
             <label className="control-label" htmlFor="env-preset">
+              <span className="chevron-row" aria-hidden="true">
+                {'>'}
+              </span>{' '}
               Reflection environment
             </label>
             <select
@@ -210,7 +257,6 @@ export default function App() {
             {status.message}
           </p>
         </aside>
-      </main>
 
       <GetItSection />
 
@@ -224,6 +270,7 @@ export default function App() {
           </a>
         </p>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }
