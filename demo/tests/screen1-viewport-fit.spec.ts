@@ -41,7 +41,7 @@ test('screen 1 fits in exactly one viewport at every required size (STRATOS 100v
 
     const targets: Array<[string, ReturnType<typeof page.locator>]> = [
       ['canvas', page.locator('canvas')],
-      ['upload control', page.getByRole('button', { name: 'Choose an image' })],
+      ['upload control', page.getByRole('button', { name: 'Upload' })],
       ['preset row container', page.getByRole('group', { name: 'Presets' })],
       ['env select', page.locator('#env-preset')],
       // The full dock (its outer container), not just the controls inside

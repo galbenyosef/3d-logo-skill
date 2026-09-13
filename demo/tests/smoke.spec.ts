@@ -99,6 +99,20 @@ test.describe('3D logo skill demo', () => {
     expect(consoleErrors).toEqual([])
   })
 
+  test('screen 2 is a single numbered install flow, not a separate "how it works" section', async ({ page }) => {
+    await page.goto('/')
+
+    await expect(page.getByRole('heading', { level: 2, name: 'Install' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'How it works' })).toHaveCount(0)
+
+    // The three numbered rows, in order.
+    const rowTitles = page.locator('.install-row-title')
+    await expect(rowTitles).toHaveText(['Install', 'Ask your agent', 'Drop it in'])
+
+    // Row 03's snippet is visible without switching any tab.
+    await expect(page.getByText('<SpinningLogo3D logoPath="/logo.png" />')).toBeVisible()
+  })
+
   test('install tabs switch panels and expose copy buttons', async ({ browser, baseURL }) => {
     // Clipboard writes need an explicit grant under Chromium, even headless.
     const context = await browser.newContext({ permissions: ['clipboard-write'] })
