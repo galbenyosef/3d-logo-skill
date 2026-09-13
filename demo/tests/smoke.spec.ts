@@ -1,11 +1,27 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 
 // Left over from the session that wrote this test — a scratchpad dir from a
 // prior Claude Code session id, which doesn't exist on any other machine.
 // An env var with a same-repo fallback keeps the test portable.
 const SCREENSHOT_DIR = process.env.PLAYWRIGHT_SCREENSHOT_DIR ?? 'test-results/visual'
 
+// The Hero's star count hits the live, unauthenticated GitHub API
+// (60 req/hr per IP) — fine in production, but it makes local test runs
+// flaky once that limit is exhausted (a real 403 the app already handles
+// gracefully, but Chromium still logs it to console, tripping the
+// `consoleErrors` assertions below). Mocking it keeps these tests
+// deterministic regardless of live rate-limit state.
+async function mockGithubStars(routable: Page | BrowserContext) {
+  await routable.route('https://api.github.com/repos/**', (route) =>
+    route.fulfill({ json: { stargazers_count: 1234 } }),
+  )
+}
+
 test.describe('3D logo skill demo', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockGithubStars(page)
+  })
+
   test('renders the coin, swaps presets, accepts uploads, and rejects non-images', async ({ page }) => {
     const consoleErrors: string[] = []
     page.on('console', (msg) => {
@@ -86,6 +102,7 @@ test.describe('3D logo skill demo', () => {
   test('install tabs switch panels and expose copy buttons', async ({ browser, baseURL }) => {
     // Clipboard writes need an explicit grant under Chromium, even headless.
     const context = await browser.newContext({ permissions: ['clipboard-write'] })
+    await mockGithubStars(context)
     const page = await context.newPage()
     const consoleErrors: string[] = []
     page.on('console', (msg) => {
