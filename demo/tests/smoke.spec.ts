@@ -50,7 +50,7 @@ test.describe('3D logo skill demo', () => {
 
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('3D spinning coin')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('3D coin out')
     await expect(page.getByRole('link', { name: /Star on GitHub/ })).toBeVisible()
 
     // The file chooser opens directly — no scrolling/focusing detour needed.
