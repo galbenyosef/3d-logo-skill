@@ -337,6 +337,11 @@ a {
   text-wrap: balance;
 }
 
+/* One phrase per line — a free wrap split the longer headline mid-phrase. */
+.hero-title-line {
+  display: block;
+}
+
 .hero-subline {
   margin: 0;
   font-size: var(--text-body);

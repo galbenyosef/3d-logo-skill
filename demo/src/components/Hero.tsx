@@ -24,7 +24,9 @@ export function Hero({ onTryLogo }: HeroProps) {
       <p className="dr-label">
         <span className="dr-accent">3D-LOGO</span> // AG-SYS 01 — COIN FORGE
       </p>
-      <h1 className="hero-title">Flat logo in. 3D coin out.</h1>
+      <h1 className="hero-title">
+        <span className="hero-title-line">Flat in.</span> <span className="hero-title-line">3D out.</span>
+      </h1>
       <p className="hero-subline">
         An agent skill that turns any flat logo into a 3D spinning coin — for Claude Code, Cursor, Codex, Copilot,
         Gemini CLI and 50+ more agents.
