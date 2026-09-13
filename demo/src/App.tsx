@@ -188,11 +188,11 @@ export default function App() {
               <div className="control-row">
                 <div className="control-group">
                   <label className="control-label" htmlFor="logo-upload">
-                    Upload
+                    Your logo
                   </label>
                   <div className="upload-row">
                     <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-                      Choose an image
+                      Upload
                     </button>
                     <input
                       ref={fileInputRef}
@@ -236,9 +236,9 @@ export default function App() {
             </div>
 
             <a className="scroll-cue" href="#install">
-              <span className="scroll-cue-chevrons" aria-hidden="true">
-                ›››
-              </span>
+              <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden="true" focusable="false">
+                <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               Install
             </a>
           </div>
