@@ -1,10 +1,10 @@
 /* STRATOS — anti-grav racing HUD above a cloud deck at dusk.
-   Wipeout survives only as accents (Michroma caps, mono `//` telemetry,
-   `›››` chevrons) blended into a dreamy twilight sky. Frozen token contract
-   (shared with a sibling project — do not change the values below):
-   sky gradient stops, cloud colors, glass panel formula, text colors,
-   signal yellow / cyan, and the 2-family / 3-size / 3-weight type budget
-   (nothing >= 600). See lean-ui + .impeccable.md. */
+   Only Michroma (display caps) and the mono `//` telemetry idiom survive
+   from Wipeout; every control is soft, frosted and native to the sky —
+   no chamfers, no hard fills. Frozen token contract (shared with a sibling
+   project — do not change the values below): sky gradient stops, cloud
+   colors, glass panel formula, text colors, and the 2-family / 3-size /
+   3-weight type budget (nothing >= 600). See lean-ui + .impeccable.md. */
 :root {
   color-scheme: dark;
 
@@ -35,6 +35,21 @@
      label at ~7:1+ against cloud white, sky pink, or the coin glow. */
   --hud-bg: rgba(20, 22, 58, 0.72);
 
+  /* ---- Controls: soft frosted pills, distinct from the dock's dark glass ----
+     Kept deliberately subtle: white text on these pills must still clear
+     WCAG AA even in the worst case (a chip sitting over the gradient's most
+     saturated pink/peach band) — verified by hand against every gradient
+     stop, not just the safest one. Hover leans on lift + glow rather than a
+     big brightness jump to preserve that margin. */
+  --control-fill: rgba(255, 255, 255, 0.08);
+  --control-fill-strong: rgba(255, 255, 255, 0.1);
+  --control-border: rgba(255, 255, 255, 0.24);
+  --control-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --control-glow: 0 8px 24px rgba(255, 255, 255, 0.16);
+  /* The "lit cloud" treatment for the primary CTA and anything selected/active. */
+  --lit-cloud: linear-gradient(180deg, #ffffff 0%, var(--sky-horizon) 100%);
+  --lit-cloud-glow: 0 8px 26px rgba(255, 201, 163, 0.4);
+
   /* ---- Type: 2 families, 3 sizes, 2 real weights (nothing >= 600) ---- */
   --font-display: 'Michroma', 'Arial Narrow', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -46,12 +61,9 @@
   --weight-normal: 400;
   --weight-medium: 500;
 
-  /* ---- Radii: one for controls, one for panels/containers ---- */
-  --radius-control: 10px;
+  /* ---- Radii: one soft pill for controls, one for panels/containers ---- */
+  --radius-control: 999px;
   --radius-panel: var(--glass-radius);
-
-  /* A single chamfer reserved for exactly one element: the primary CTA. */
-  --chamfer-cta: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -233,7 +245,7 @@ a {
   to { transform: translateX(-4%); }
 }
 
-/* ---------- Glass: the one panel formula every control lives on ---------- */
+/* ---------- Glass: the one dark-panel formula every dock/container lives on ---------- */
 
 .glass-panel {
   background: var(--glass-bg);
@@ -336,66 +348,83 @@ a {
   margin-top: var(--space-1);
 }
 
-/* ---------- Buttons: one shared base, chamfer reserved for the CTA ---------- */
+/* ---------- Controls: soft frosted pills, native to the sky ----------
+   One shared base — a translucent white/lilac pill with a soft inner top
+   highlight — with two variants layered on top: the "lit cloud" treatment
+   (white-to-peach gradient + indigo ink) for the primary action and
+   anything selected/active, and a quieter outline-only ghost for secondary
+   links. Hover is a gentle lift + glow, never a sweep or color change that
+   reads as a "speed" cue. */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  border: 0;
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   max-width: 100%;
+  background: var(--control-fill);
+  color: var(--text);
+  box-shadow: var(--control-highlight);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
+.btn:hover {
+  transform: translateY(-1px);
+  background: var(--control-fill-strong);
+  box-shadow: var(--control-highlight), var(--control-glow);
+}
+
+/* The "lit cloud" primary CTA — a soft white-to-peach gradient reads as a
+   sunlit cloud, with indigo ink text for contrast. The one place yellow
+   used to live; now it survives only as the tiny star-icon accent below. */
 .btn-primary {
-  background: var(--accent);
+  background: var(--lit-cloud);
+  border-color: transparent;
   color: var(--accent-ink);
+  box-shadow: var(--lit-cloud-glow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .btn-primary:hover {
-  background: color-mix(in srgb, var(--accent) 84%, white);
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #ffffff 0%, #ffd9b8 100%);
+  box-shadow: 0 10px 30px rgba(255, 201, 163, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .btn-primary:focus-visible {
   outline-color: var(--accent-ink);
 }
 
-/* The one deliberate chamfer in the whole design. */
 .hero-cta {
-  clip-path: var(--chamfer-cta);
   padding: var(--space-3) var(--space-6);
 }
 
 .btn-ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-dim);
   text-decoration: none;
-  border: 1px solid var(--glass-border);
 }
 
 .btn-ghost:hover {
   color: var(--text);
-  border-color: var(--accent-2);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* The star icon is the one place signal yellow survives — a tiny, natural
+   accent (stars are golden) rather than a UI-surface fill. */
+.btn-ghost svg {
+  color: var(--accent);
 }
 
 .btn-secondary {
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  backdrop-filter: blur(var(--glass-blur));
-  color: var(--text);
-  border: 1px solid var(--glass-border);
-}
-
-.btn-secondary:hover {
-  border-color: var(--accent-2);
+  background: var(--control-fill-strong);
 }
 
 /* ---------- Coin stage ---------- */
@@ -450,9 +479,11 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--accent-2);
-  background: var(--hud-bg);
-  color: var(--accent-2);
+  border: 1px dashed rgba(255, 255, 255, 0.5);
+  background: rgba(20, 22, 58, 0.55);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  color: var(--text);
   font-family: var(--font-display);
   text-transform: uppercase;
   font-size: var(--text-body);
@@ -509,30 +540,32 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--hud-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  background: var(--control-fill);
+  border: 1px solid var(--control-border);
+  box-shadow: var(--control-highlight);
   color: var(--text);
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .stage-pause:hover {
-  border-color: var(--accent-2);
-  color: var(--accent-2);
+  transform: translateY(-1px);
+  background: var(--control-fill-strong);
+  box-shadow: var(--control-highlight), var(--control-glow);
 }
 
 .stage-pause[aria-pressed='true'] {
-  background: var(--accent-2);
-  color: var(--accent-2-ink);
+  background: var(--lit-cloud);
+  color: var(--accent-ink);
   border-color: transparent;
+  box-shadow: var(--lit-cloud-glow);
 }
 
 .stage-pause[aria-pressed='true']:focus-visible {
-  outline-color: var(--accent-2-ink);
+  outline-color: var(--accent-ink);
 }
 
-/* ---------- Dock: the frosted-glass control strip ---------- */
+/* ---------- Dock: the frosted dark-glass control strip ---------- */
 
 .dock {
   display: flex;
@@ -590,8 +623,8 @@ a {
   align-items: center;
   gap: var(--space-2);
   flex: 0 0 auto;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--glass-border);
+  background: var(--control-fill);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
@@ -600,22 +633,29 @@ a {
   font-weight: var(--weight-normal);
   color: var(--text);
   white-space: nowrap;
+  box-shadow: var(--control-highlight);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .chip img {
   display: block;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .chip:hover {
-  border-color: var(--accent-2);
+  transform: translateY(-1px);
+  background: var(--control-fill-strong);
+  box-shadow: var(--control-highlight), var(--control-glow);
 }
 
+/* The active chip gets the same "lit cloud" treatment as the primary CTA —
+   a brighter, sunlit pill rather than a saturated color fill. */
 .chip[aria-pressed='true'] {
-  background: var(--accent);
+  background: var(--lit-cloud);
   border-color: transparent;
   color: var(--accent-ink);
+  box-shadow: var(--lit-cloud-glow);
 }
 
 .upload-row {
@@ -625,22 +665,28 @@ a {
 .select {
   width: 100%;
   border-radius: var(--radius-control);
-  border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.06);
-  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
+  border: 1px solid var(--control-border);
+  background: var(--control-fill);
+  box-shadow: var(--control-highlight);
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-4);
   color: var(--text);
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--accent-2) 50%),
-    linear-gradient(135deg, var(--accent-2) 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.7) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.7) 50%, transparent 50%);
   background-position:
-    calc(100% - 18px) center,
-    calc(100% - 13px) center;
+    calc(100% - 20px) center,
+    calc(100% - 15px) center;
   background-size: 5px 5px;
   background-repeat: no-repeat;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--text-xs);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.select:hover {
+  background-color: var(--control-fill-strong);
 }
 
 .status {
@@ -658,7 +704,7 @@ a {
 }
 
 .status[data-kind='loading'] {
-  color: var(--accent);
+  color: var(--text);
 }
 
 /* Scroll cue at the foot of screen 1. */
@@ -914,7 +960,7 @@ a {
   font-weight: var(--weight-medium);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text-dim);
 }
 
 .get-it-grid {
@@ -945,8 +991,8 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
+  background: var(--control-fill);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-4);
   font-family: var(--font-mono);
@@ -956,18 +1002,23 @@ a {
   font-weight: var(--weight-normal);
   color: var(--text-dim);
   cursor: pointer;
+  box-shadow: var(--control-highlight);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .tab:hover {
   color: var(--text);
-  border-color: var(--accent-2);
+  transform: translateY(-1px);
+  background: var(--control-fill-strong);
+  box-shadow: var(--control-highlight), var(--control-glow);
 }
 
 .tab[aria-selected='true'] {
-  background: var(--accent);
+  background: var(--lit-cloud);
   border-color: transparent;
   color: var(--accent-ink);
   font-weight: var(--weight-medium);
+  box-shadow: var(--lit-cloud-glow);
 }
 
 .tab[aria-selected='true']:focus-visible {
@@ -995,7 +1046,7 @@ a {
 .code-block {
   flex: 1;
   min-width: 0;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-panel);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   padding: var(--space-3);
@@ -1032,19 +1083,23 @@ a {
   gap: var(--space-1);
   flex-shrink: 0;
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--glass-border);
+  background: var(--control-fill);
+  border: 1px solid var(--control-border);
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: 0.04em;
   color: var(--text-dim);
   cursor: pointer;
+  box-shadow: var(--control-highlight);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .copy-btn:hover {
   color: var(--text);
-  border-color: var(--accent-2);
+  transform: translateY(-1px);
+  background: var(--control-fill-strong);
+  box-shadow: var(--control-highlight), var(--control-glow);
 }
 
 .get-it-usage {
@@ -1087,9 +1142,9 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--control-fill);
+  border: 1px solid var(--control-border);
   font-family: var(--font-mono);
   font-weight: var(--weight-medium);
   font-size: var(--text-xs);
