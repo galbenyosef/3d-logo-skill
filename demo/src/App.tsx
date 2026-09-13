@@ -125,7 +125,11 @@ export default function App() {
     if (e.currentTarget === e.target) setIsDraggingOver(false)
   }, [])
 
-  const spinLabel = isPaused ? 'PAUSED' : reducedMotion ? '0.5X · REDUCED' : '1.0X'
+  // "Less is more": the status line is a live region for screen readers at
+  // all times, but only earns screen space when it says something the
+  // preset chips/upload control don't already show — a transient loading or
+  // error message. The default/ready state stays visually hidden.
+  const statusVisible = status.kind === 'loading' || status.kind === 'error'
 
   return (
     <>
@@ -142,103 +146,99 @@ export default function App() {
               lives in .screen-1-inner, which carries the max-width column. */}
           <Sky />
           <div className="screen-1-inner">
-          <Hero onTryLogo={() => fileInputRef.current?.click()} />
+            <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
-          <div className="coin-stage" aria-label={`3D preview: ${activeLogo.label}`}>
-            <div className="coin-glow" aria-hidden="true" />
-            <div className="coin-canvas-wrap">
-              <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
+            <div className="coin-stage" aria-label={`3D preview: ${activeLogo.label}`}>
+              <div className="coin-glow" aria-hidden="true" />
+              <div className="coin-canvas-wrap">
+                <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
+              </div>
+              <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
+
+              {isDraggingOver && (
+                <div className="drop-overlay" aria-hidden="true">
+                  Drop to use this logo
+                </div>
+              )}
             </div>
 
-            <span className="hud-label hud-label--tl" aria-hidden="true">
-              ALT 12,000 FT // COIN FORGE
-            </span>
-            <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
-            <span className="hud-label hud-label--bl" aria-hidden="true">
-              SPIN // {spinLabel}
-            </span>
-            <span className="hud-label hud-label--br" aria-hidden="true">
-              LOCAL ONLY
-            </span>
-
-            {isDraggingOver && (
-              <div className="drop-overlay" aria-hidden="true">
-                Drop to use this logo
-              </div>
-            )}
-          </div>
-
-          <div className="dock glass-panel">
-            <div className="control-group">
-              <span className="control-label" id="presets-label">
-                Sample logos
-              </span>
-              <div className="preset-row" role="group" aria-labelledby="presets-label">
-                {PRESET_LOGOS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className="chip"
-                    aria-pressed={!activeLogo.isUpload && activeLogo.label === preset.label}
-                    onClick={() => handlePreset(preset.file, preset.label)}
-                  >
-                    <img src={presetUrl(preset.file)} alt="" width={22} height={22} />
-                    <span>{preset.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="control-row">
+            <div className="dock glass-panel">
               <div className="control-group">
-                <label className="control-label" htmlFor="logo-upload">
-                  Your own logo
-                </label>
-                <div className="upload-row">
-                  <button type="button" className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
-                    Choose an image
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    id="logo-upload"
-                    type="file"
-                    accept="image/*"
-                    className="visually-hidden"
-                    onChange={handleFileInputChange}
-                  />
+                <span className="control-label" id="presets-label">
+                  Presets
+                </span>
+                <div className="preset-row" role="group" aria-labelledby="presets-label">
+                  {PRESET_LOGOS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className="chip"
+                      aria-pressed={!activeLogo.isUpload && activeLogo.label === preset.label}
+                      onClick={() => handlePreset(preset.file, preset.label)}
+                    >
+                      <img src={presetUrl(preset.file)} alt="" width={22} height={22} />
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="control-group">
-                <label className="control-label" htmlFor="env-preset">
-                  Reflection
-                </label>
-                <select
-                  id="env-preset"
-                  className="select"
-                  value={envPreset}
-                  onChange={(e) => setEnvPreset(e.target.value as EnvPreset)}
-                >
-                  {ENV_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {ENV_PRESET_LABELS[preset]}
-                    </option>
-                  ))}
-                </select>
+              <div className="control-row">
+                <div className="control-group">
+                  <label className="control-label" htmlFor="logo-upload">
+                    Upload
+                  </label>
+                  <div className="upload-row">
+                    <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
+                      Choose an image
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="visually-hidden"
+                      onChange={handleFileInputChange}
+                    />
+                  </div>
+                  <p className="control-note">Stays on your device.</p>
+                </div>
+
+                <div className="control-group">
+                  <label className="control-label" htmlFor="env-preset">
+                    Reflection
+                  </label>
+                  <select
+                    id="env-preset"
+                    className="select"
+                    value={envPreset}
+                    onChange={(e) => setEnvPreset(e.target.value as EnvPreset)}
+                  >
+                    {ENV_PRESETS.map((preset) => (
+                      <option key={preset} value={preset}>
+                        {ENV_PRESET_LABELS[preset]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              <p
+                className={`status${statusVisible ? '' : ' visually-hidden'}`}
+                role="status"
+                aria-live="polite"
+                data-kind={status.kind}
+              >
+                {status.message}
+              </p>
             </div>
 
-            <p className="status" role="status" aria-live="polite" data-kind={status.kind}>
-              {status.message}
-            </p>
-          </div>
-
-          <a className="scroll-cue" href="#install">
-            <span className="scroll-cue-chevrons" aria-hidden="true">
-              ›››
-            </span>
-            Install
-          </a>
+            <a className="scroll-cue" href="#install">
+              <span className="scroll-cue-chevrons" aria-hidden="true">
+                ›››
+              </span>
+              Install
+            </a>
           </div>
         </section>
 

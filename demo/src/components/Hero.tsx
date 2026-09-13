@@ -22,16 +22,10 @@ export function Hero({ onTryLogo }: HeroProps) {
 
   return (
     <header className="hero-copy">
-      <p className="kicker">
-        <span className="kicker-accent">3D-LOGO</span> // COIN FORGE
-      </p>
       <h1 className="headline">
         <span className="headline-line">Flat in.</span> <span className="headline-line">3D out.</span>
       </h1>
-      <p className="subline">
-        An agent skill that turns any flat logo into a 3D spinning coin — for Claude Code, Cursor, Codex, Copilot,
-        Gemini CLI and 50+ more agents.
-      </p>
+      <p className="subline">Any logo → a 3D spinning coin.</p>
       <div className="hero-actions">
         <button type="button" className="btn btn-primary hero-cta" onClick={onTryLogo}>
           Try your logo

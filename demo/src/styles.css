@@ -8,7 +8,7 @@
 :root {
   color-scheme: dark;
 
-  /* ---- Frozen: sky + cloud + glass + text + signal colors ---- */
+  /* ---- Frozen: sky + cloud + glass + text colors ---- */
   --sky-top: #14163a;
   --sky-mid: #3b3f8f;
   --sky-pink: #c98fb5;
@@ -28,12 +28,6 @@
   --accent-2: #2ee6ff;
   --accent-2-ink: #04222a;
   --danger: #ff9a86;
-  --danger-ink: #2a1310;
-
-  /* HUD telemetry chips float over moving sky/cloud, not fixed glass — a
-     denser, purpose-tuned tint (not the frozen --glass-bg) keeps every
-     label at ~7:1+ against cloud white, sky pink, or the coin glow. */
-  --hud-bg: rgba(20, 22, 58, 0.72);
 
   /* ---- Controls: soft frosted pills, distinct from the dock's dark glass ----
      Kept deliberately subtle: white text on these pills must still clear
@@ -74,7 +68,6 @@
   --space-7: 48px;
 
   --shadow-resting: 0 8px 30px -12px rgba(20, 22, 58, 0.55);
-  --shadow-raised: 0 14px 40px -10px rgba(20, 22, 58, 0.6);
 }
 
 * {
@@ -141,9 +134,7 @@ a {
    A normal (non-fixed) absolutely-positioned layer sized to screen 1's own
    box — this is what makes the transition into screen 2's cloud-sea
    seamless: both are ordinary document content, not a viewport-fixed
-   backdrop that would show a fresh gradient at every scroll position.
-   Clouds animate transform only; the umbrella reduced-motion rule below
-   collapses every animation to ~static. */
+   backdrop that would show a fresh gradient at every scroll position. */
 .sky {
   position: absolute;
   inset: 0;
@@ -153,7 +144,7 @@ a {
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 38%, var(--sky-pink) 72%, var(--sky-horizon) 100%);
 }
 
-/* Darkens the upper sky further so kicker/headline/subline always clear
+/* Darkens the upper sky further so the headline/subline always clear
    WCAG AA even before any glass sits behind them. */
 .sky-vignette-top {
   position: absolute;
@@ -301,20 +292,6 @@ a {
   align-items: flex-start;
   gap: var(--space-2);
   max-width: 640px;
-}
-
-.kicker {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-weight: var(--weight-medium);
-  font-size: var(--text-xs);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.kicker-accent {
-  color: var(--accent);
 }
 
 .headline {
@@ -493,43 +470,6 @@ a {
   pointer-events: none;
 }
 
-/* ---- HUD telemetry: mono micro-labels + pause toggle, floating near the coin ---- */
-
-.hud-label {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: var(--hud-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  padding: var(--space-1) var(--space-3);
-  font-family: var(--font-mono);
-  font-weight: var(--weight-medium);
-  font-size: var(--text-xs);
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.hud-label--tl {
-  top: 0;
-  left: 0;
-}
-
-.hud-label--bl {
-  bottom: 0;
-  left: 0;
-}
-
-.hud-label--br {
-  bottom: 0;
-  right: 0;
-  color: var(--accent-2);
-}
-
 .stage-pause {
   position: absolute;
   top: 0;
@@ -602,6 +542,12 @@ a {
   font-weight: var(--weight-medium);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.control-note {
+  margin: 0;
+  font-size: var(--text-xs);
   color: var(--text-dim);
 }
 
@@ -821,10 +767,6 @@ a {
 }
 
 @media (max-height: 620px) {
-  .kicker {
-    display: none;
-  }
-
   .coin-stage {
     min-height: 24svh;
     max-height: 30svh;
@@ -1119,7 +1061,7 @@ a {
   color: var(--text-dim);
 }
 
-/* ---------- How it works ---------- */
+/* ---------- How it works: 3 one-line steps ---------- */
 
 .how-steps {
   list-style: none;
@@ -1132,6 +1074,7 @@ a {
 
 .how-step {
   display: flex;
+  align-items: center;
   gap: var(--space-3);
 }
 
@@ -1151,17 +1094,10 @@ a {
   color: var(--accent-2);
 }
 
-.how-step-title {
-  margin: 0 0 var(--space-1);
-  font-size: var(--text-body);
-  font-weight: var(--weight-medium);
-  color: var(--text);
-}
-
-.how-step-body {
+.how-step-text {
   margin: 0;
-  font-size: var(--text-xs);
-  color: var(--text-dim);
+  font-size: var(--text-body);
+  color: var(--text);
 }
 
 /* ---------- Footer ---------- */
