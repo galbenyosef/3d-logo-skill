@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GetItSection } from './components/GetItSection'
 import { Hero } from './components/Hero'
-import { HowItWorks } from './components/HowItWorks'
 import { PauseToggle } from './components/PauseToggle'
 import { Sky } from './components/Sky'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
@@ -247,7 +246,6 @@ export default function App() {
         <section className="screen screen-2" id="install">
           <div className="screen-2-inner">
             <GetItSection />
-            <HowItWorks />
             <footer className="footer">
               <p>
                 MIT licence · <a href={REPO_URL} target="_blank" rel="noreferrer">3d-logo-skill on GitHub</a> · Built by{' '}

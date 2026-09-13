@@ -822,15 +822,8 @@ a {
   gap: var(--space-6);
 }
 
-.section-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-4);
-}
-
 .section-title {
-  margin: 0;
+  margin: 0 0 var(--space-6);
   font-family: var(--font-display);
   /* Same scale as the hero headline — a 4th, section-specific size was one
      size too many for the 3-size budget. */
@@ -841,31 +834,67 @@ a {
   color: var(--text);
 }
 
-.section-eyebrow {
+/* ---------- Install: one numbered 3-row flow ---------- */
+
+.install-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.install-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.install-row:last-child {
+  border-bottom: none;
+}
+
+.install-row-label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.install-row-number {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.install-row-title {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-.get-it-grid {
+.install-row-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
+  max-width: 720px;
+  min-width: 0;
 }
 
 @media (min-width: 900px) {
-  .get-it-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
+  .install-row {
+    grid-template-columns: 220px 1fr;
+    gap: var(--space-6);
+    padding: var(--space-6) 0;
   }
-}
 
-.tabs {
-  max-width: 640px;
+  .install-row-label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
 }
 
 .tablist {
@@ -995,62 +1024,6 @@ a {
   transform: translateY(-1px);
   background: var(--control-fill-strong);
   box-shadow: var(--control-highlight), var(--control-glow);
-}
-
-.get-it-usage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 640px;
-}
-
-.get-it-label {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-/* ---------- How it works: 3 one-line steps ---------- */
-
-.how-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-5);
-}
-
-.how-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.how-step-index {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--control-fill);
-  border: 1px solid var(--control-border);
-  font-family: var(--font-mono);
-  font-weight: var(--weight-medium);
-  font-size: var(--text-sm);
-  color: var(--accent-2);
-}
-
-.how-step-text {
-  margin: 0;
-  font-size: var(--text-body);
-  color: var(--text);
 }
 
 /* ---------- Footer ---------- */
