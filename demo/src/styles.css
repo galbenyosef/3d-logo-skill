@@ -502,7 +502,11 @@ a {
 }
 
 .stage-pause {
-  position: static;
+  /* relative, not static — it still flows normally inside
+     .stage-hud-top-right, but the hover-sweep ::after needs a positioned
+     ancestor to size itself against. */
+  position: relative;
+  overflow: hidden;
   width: 40px;
   height: 40px;
   display: flex;
@@ -933,6 +937,76 @@ a {
 
 /* ---------- Motion ---------- */
 
+/* Speed-line hover sweep: a soft diagonal highlight travels across every
+   chamfered control. Shared by every button-like surface rather than
+   duplicated per component. clip-path on the host already crops this to
+   the chamfer, so no separate overflow/position rules are needed beyond
+   the `position: relative` each of these already carries. */
+.btn::after,
+.preset-btn::after,
+.tab::after,
+.copy-btn::after,
+.stage-pause::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform 0.45s ease;
+  pointer-events: none;
+}
+
+.btn:hover::after,
+.preset-btn:hover::after,
+.tab:hover::after,
+.copy-btn:hover::after,
+.stage-pause:hover::after {
+  transform: translateX(120%);
+}
+
+.preset-btn,
+.tab,
+.copy-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+/* One-shot intro wipe: a full-viewport panel collapses upward on load,
+   like a pit-lane shutter. Removed from the DOM entirely once it finishes
+   (see App.tsx onAnimationEnd) rather than left sitting inert. */
+.intro-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg);
+  pointer-events: none;
+  animation: intro-wipe-collapse 0.7s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.intro-wipe::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: var(--hazard);
+}
+
+@keyframes intro-wipe-collapse {
+  from {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+  to {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  }
+}
+
+/* The umbrella rule: every transition and animation on the page — the
+   hover sweep and intro wipe included — collapses to effectively instant
+   under reduced motion, satisfying "disabled" without a second code path
+   per effect. Pointer-events on .intro-wipe are already none, so even its
+   near-zero-duration frame can't block interaction. */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;

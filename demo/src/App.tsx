@@ -51,6 +51,9 @@ export default function App() {
   })
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  // One-shot intro wipe (see .intro-wipe): removed from the DOM once its
+  // collapse animation finishes so it doesn't sit around as inert markup.
+  const [introDone, setIntroDone] = useState(false)
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
@@ -121,6 +124,7 @@ export default function App() {
 
   return (
     <>
+      {!introDone && <div className="intro-wipe" aria-hidden="true" onAnimationEnd={() => setIntroDone(true)} />}
       <div className="viewport-frame" aria-hidden="true">
         <span className="corner-bracket tl" />
         <span className="corner-bracket tr" />
