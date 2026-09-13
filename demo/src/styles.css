@@ -754,6 +754,22 @@ a {
   .control-row {
     flex-direction: row;
   }
+
+  /* The dock covers most of a mobile screen's width, hiding the banks
+     behind it almost entirely — raise all three so the far bank's crowns
+     clear the dock's top edge and cross the lower sun, instead of only
+     broken fragments peeking out at the left/right margins. */
+  .cloud-bank-far {
+    --bank-h: 46svh;
+  }
+
+  .cloud-bank-mid {
+    --bank-h: 34svh;
+  }
+
+  .cloud-bank-near {
+    --bank-h: 22svh;
+  }
 }
 
 /* ---------- Short viewports: compress before anything overflows. Comes

@@ -8,7 +8,10 @@ const STAR_SEED = 1337
 // Nearer = darker, bigger, chunkier lumps. The near bank's fill MUST stay
 // exactly --sky-top — that's what makes screen 1 sink into screen 2 with no
 // seam band (see .impeccable.md / styles.css `.screen-2`), guaranteed here
-// by cloudBankTileSvg's gradient (flat fillColor for the lower 60%).
+// by cloudBankTileSvg's gradient (flat fillColor for the lower 60%). Its
+// topColor is a fixed, slightly-lighter navy rather than the auto-lightened
+// default — a distinct silhouette instead of fading into fog against the
+// mid bank behind it.
 const BANKS = [
   {
     className: 'cloud-bank-far',
@@ -33,9 +36,14 @@ const BANKS = [
     seed: 43,
     fillColor: '#14163a',
     rimColor: '#ffe6d2',
+    topColor: '#262857',
     baselineRatio: 0.42,
     l2Count: 11,
-    l3Count: 20,
+    // Fewer, bigger L3 puffs than the other banks — less spiky, reads as
+    // one solid ridge rather than a fringe of tiny teeth.
+    l3Count: 13,
+    l3MinRadiusRatio: 0.06,
+    l3MaxRadiusRatio: 0.12,
   },
 ] as const
 
