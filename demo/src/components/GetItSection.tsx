@@ -31,16 +31,12 @@ export function GetItSection() {
   return (
     <section className="get-it" aria-labelledby="get-it-title">
       <div className="section-head">
-        <span className="section-numeral" aria-hidden="true">
-          01
-        </span>
-        <div className="section-head-text">
-          <span className="dr-label">INSTALL // AG-SYS 01</span>
+        <div>
+          <span className="section-eyebrow">Install // 01</span>
           <h2 id="get-it-title" className="section-title">
             Install it
           </h2>
         </div>
-        <span className="section-head-rule" aria-hidden="true" />
       </div>
 
       <div className="get-it-grid">
@@ -52,7 +48,7 @@ export function GetItSection() {
                 id={`install-tab-${tab.id}`}
                 type="button"
                 role="tab"
-                className="tab chamfer"
+                className="tab"
                 aria-selected={activeTab === tab.id}
                 aria-controls={`install-panel-${tab.id}`}
                 tabIndex={activeTab === tab.id ? 0 : -1}
