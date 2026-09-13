@@ -24,9 +24,9 @@ test.describe('3D logo skill demo', () => {
     expect(box?.height ?? 0).toBeGreaterThan(50)
 
     const status = page.getByRole('status')
-    await expect(status).toContainText('Phoenix Shield')
+    await expect(status).toContainText('AG Shield')
 
-    for (const label of ['Cosmic Eye', 'Wolf Compass', 'Phoenix Shield']) {
+    for (const label of ['Hazard Wing', 'Phoenix Shield', 'Cosmic Eye', 'Wolf Compass', 'AG Shield']) {
       await page.getByRole('button', { name: label }).click()
       await expect(status).toContainText(label)
     }
