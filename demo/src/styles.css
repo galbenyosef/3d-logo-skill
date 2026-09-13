@@ -724,9 +724,17 @@ a {
   }
 }
 
-/* ---------- Mobile: dock-anchored bottom strip ---------- */
+/* ---------- Mobile: dock-anchored bottom strip ----------
+   The coin is capped by `svh` (not just width) so its square size can never
+   exceed the height budget actually reserved for it — a plain
+   `width: min(100%, 480px)` would happily grow past coin-stage's intended
+   height on a narrow-but-tall phone and collide with the CTAs above it. */
 
 @media (max-width: 1023px) {
+  .screen-1-inner {
+    gap: var(--space-2);
+  }
+
   .hero-copy {
     text-align: left;
   }
@@ -736,8 +744,12 @@ a {
   }
 
   .coin-stage {
-    min-height: 38svh;
-    max-height: 45svh;
+    min-height: 30svh;
+    max-height: 36svh;
+  }
+
+  .coin-canvas-wrap {
+    width: min(100%, 480px, 30svh);
   }
 
   .control-row {
@@ -751,14 +763,17 @@ a {
 
 @media (max-height: 760px) {
   .screen-1-inner {
-    gap: var(--space-2);
     padding-top: var(--space-3);
     padding-bottom: var(--space-3);
   }
 
   .coin-stage {
-    min-height: 30svh;
-    max-height: 38svh;
+    min-height: 22svh;
+    max-height: 28svh;
+  }
+
+  .coin-canvas-wrap {
+    width: min(100%, 480px, 22svh);
   }
 
   .subline {
@@ -768,8 +783,12 @@ a {
 
 @media (max-height: 620px) {
   .coin-stage {
-    min-height: 24svh;
-    max-height: 30svh;
+    min-height: 18svh;
+    max-height: 22svh;
+  }
+
+  .coin-canvas-wrap {
+    width: min(100%, 480px, 18svh);
   }
 
   .hero-actions {
@@ -1118,7 +1137,8 @@ a {
   .btn,
   .tab,
   .chip,
-  .copy-btn {
+  .copy-btn,
+  .select {
     min-height: 44px;
   }
 
