@@ -166,50 +166,51 @@ a {
   will-change: transform;
 }
 
+/* Softness comes from each gradient's own gradual transparent falloff, not
+   a `filter: blur()` — full-viewport animated blur is punishingly expensive
+   on a software (non-GPU) rasterizer, e.g. the swiftshader Chromium this
+   repo's Playwright config uses, and it buys no visible improvement over a
+   wide, gentle radial falloff. */
 .cloud-layer-1 {
   bottom: -6%;
   height: 30%;
-  opacity: 0.9;
-  filter: blur(5px);
+  opacity: 0.85;
   background:
-    radial-gradient(42% 70% at 18% 60%, var(--cloud) 0%, transparent 72%),
-    radial-gradient(34% 55% at 42% 78%, var(--cloud-shadow) 0%, transparent 70%),
-    radial-gradient(48% 62% at 68% 55%, var(--cloud) 0%, transparent 72%),
-    radial-gradient(30% 50% at 90% 68%, var(--cloud-shadow) 0%, transparent 70%);
+    radial-gradient(42% 70% at 18% 60%, var(--cloud) 0%, transparent 62%),
+    radial-gradient(34% 55% at 42% 78%, var(--cloud-shadow) 0%, transparent 60%),
+    radial-gradient(48% 62% at 68% 55%, var(--cloud) 0%, transparent 62%),
+    radial-gradient(30% 50% at 90% 68%, var(--cloud-shadow) 0%, transparent 60%);
   animation: drift-1 48s ease-in-out infinite alternate;
 }
 
 .cloud-layer-2 {
   bottom: 14%;
   height: 26%;
-  opacity: 0.72;
-  filter: blur(7px);
+  opacity: 0.65;
   background:
-    radial-gradient(38% 60% at 10% 50%, var(--cloud-shadow) 0%, transparent 70%),
-    radial-gradient(46% 65% at 40% 62%, var(--cloud) 0%, transparent 72%),
-    radial-gradient(36% 55% at 74% 48%, var(--cloud-shadow) 0%, transparent 70%);
+    radial-gradient(38% 60% at 10% 50%, var(--cloud-shadow) 0%, transparent 58%),
+    radial-gradient(46% 65% at 40% 62%, var(--cloud) 0%, transparent 60%),
+    radial-gradient(36% 55% at 74% 48%, var(--cloud-shadow) 0%, transparent 58%);
   animation: drift-2 72s ease-in-out infinite alternate;
 }
 
 .cloud-layer-3 {
   bottom: 32%;
   height: 22%;
-  opacity: 0.5;
-  filter: blur(9px);
+  opacity: 0.42;
   background:
-    radial-gradient(40% 60% at 28% 55%, var(--cloud) 0%, transparent 72%),
-    radial-gradient(34% 50% at 66% 45%, var(--cloud-shadow) 0%, transparent 70%);
+    radial-gradient(40% 60% at 28% 55%, var(--cloud) 0%, transparent 58%),
+    radial-gradient(34% 50% at 66% 45%, var(--cloud-shadow) 0%, transparent 56%);
   animation: drift-3 100s ease-in-out infinite alternate;
 }
 
 .cloud-layer-4 {
   top: 4%;
   height: 18%;
-  opacity: 0.3;
-  filter: blur(11px);
+  opacity: 0.24;
   background:
-    radial-gradient(36% 55% at 22% 45%, var(--cloud) 0%, transparent 72%),
-    radial-gradient(30% 45% at 60% 55%, var(--cloud) 0%, transparent 72%);
+    radial-gradient(36% 55% at 22% 45%, var(--cloud) 0%, transparent 55%),
+    radial-gradient(30% 45% at 60% 55%, var(--cloud) 0%, transparent 55%);
   animation: drift-4 130s ease-in-out infinite alternate;
 }
 
@@ -399,8 +400,8 @@ a {
   width: min(75%, 480px);
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 201, 163, 0.55) 0%, rgba(201, 143, 181, 0.32) 42%, transparent 72%);
-  filter: blur(36px);
+  background: radial-gradient(circle, rgba(255, 201, 163, 0.55) 0%, rgba(201, 143, 181, 0.32) 38%, transparent 62%);
+  filter: blur(18px);
   animation: glow-pulse 7s ease-in-out infinite alternate;
   pointer-events: none;
 }
@@ -552,12 +553,6 @@ a {
   font-weight: var(--weight-medium);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.control-note {
-  margin: 0;
-  font-size: var(--text-xs);
   color: var(--text-dim);
 }
 
