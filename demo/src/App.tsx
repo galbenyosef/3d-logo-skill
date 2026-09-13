@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GetItSection } from './components/GetItSection'
 import { Hero } from './components/Hero'
-import { HowItWorks } from './components/HowItWorks'
 import { PauseToggle } from './components/PauseToggle'
 import { Sky } from './components/Sky'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
@@ -9,6 +8,7 @@ import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets
 import { isAllowedImageType } from './lib/fileValidation'
 import { prepareUploadedLogo } from './lib/imagePipeline'
 import { PRESET_LOGOS, presetUrl } from './lib/presetLogos'
+import { useSunPosition } from './lib/useSunPosition'
 
 const REPO_URL = 'https://github.com/hasuwini77/3d-logo-skill'
 
@@ -60,6 +60,9 @@ export default function App() {
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
+  // Positions Sky.tsx's sun disc behind the coin's lower half (--sun-x/y/r
+  // on .screen-1) — see lib/useSunPosition.ts.
+  useSunPosition()
   // Reduced motion used to drop to 12% speed, which on the many iPhones that
   // ship Reduce Motion on by default read as "broken", not "gentle" (issue #5).
   // 50% keeps the coin legibly slower without looking stuck; the explicit
@@ -149,7 +152,6 @@ export default function App() {
             <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
             <div className="coin-stage" aria-label={`3D preview: ${activeLogo.label}`}>
-              <div className="coin-glow" aria-hidden="true" />
               <div className="coin-canvas-wrap">
                 <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
               </div>
@@ -185,11 +187,11 @@ export default function App() {
               <div className="control-row">
                 <div className="control-group">
                   <label className="control-label" htmlFor="logo-upload">
-                    Upload
+                    Your logo
                   </label>
                   <div className="upload-row">
                     <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-                      Choose an image
+                      Upload
                     </button>
                     <input
                       ref={fileInputRef}
@@ -233,24 +235,17 @@ export default function App() {
             </div>
 
             <a className="scroll-cue" href="#install">
-              <span className="scroll-cue-chevrons" aria-hidden="true">
-                ›››
-              </span>
+              <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden="true" focusable="false">
+                <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               Install
             </a>
           </div>
         </section>
 
         <section className="screen screen-2" id="install">
-          <div className="screen-2-ground" aria-hidden="true">
-            <div className="cloud-sea" />
-            <span className="star star-1" />
-            <span className="star star-2" />
-            <span className="star star-3" />
-          </div>
           <div className="screen-2-inner">
             <GetItSection />
-            <HowItWorks />
             <footer className="footer">
               <p>
                 MIT licence · <a href={REPO_URL} target="_blank" rel="noreferrer">3d-logo-skill on GitHub</a> · Built by{' '}

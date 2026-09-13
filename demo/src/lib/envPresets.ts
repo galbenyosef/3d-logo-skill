@@ -4,10 +4,10 @@ export const ENV_PRESETS = ['studio', 'warehouse', 'city', 'night', 'dawn', 'sun
 export type EnvPreset = (typeof ENV_PRESETS)[number]
 
 export const ENV_PRESET_LABELS: Record<EnvPreset, string> = {
-  studio: 'Studio — clean, professional',
-  warehouse: 'Warehouse — industrial, gritty',
-  city: 'City — urban, bright',
-  night: 'Night — dark, moody',
-  dawn: 'Dawn — soft, warm',
-  sunset: 'Sunset — amber warmth',
+  studio: 'Studio',
+  warehouse: 'Warehouse',
+  city: 'City',
+  night: 'Night',
+  dawn: 'Dawn',
+  sunset: 'Sunset',
 }

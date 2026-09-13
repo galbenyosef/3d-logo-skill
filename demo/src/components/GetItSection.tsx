@@ -14,6 +14,12 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
+/**
+ * Screen 2, in full: one numbered flow — install, prompt, drop it in.
+ * Replaces the old two-part layout (a get-it grid plus a separate
+ * "How it works" section) with 3 rows sharing one heading, each a left
+ * number+label and right content, divided by hairline rules.
+ */
 export function GetItSection() {
   const [activeTab, setActiveTab] = useState<TabId>('npx')
 
@@ -30,79 +36,99 @@ export function GetItSection() {
 
   return (
     <section className="get-it" aria-labelledby="get-it-title">
-      <div className="section-head">
-        <div>
-          <span className="section-eyebrow">Install // 01</span>
-          <h2 id="get-it-title" className="section-title">
-            Install it
-          </h2>
-        </div>
-      </div>
+      <h2 id="get-it-title" className="section-title">
+        Install
+      </h2>
 
-      <div className="get-it-grid">
-        <div className="tabs">
-          <div className="tablist" role="tablist" aria-label="Install method">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                id={`install-tab-${tab.id}`}
-                type="button"
-                role="tab"
-                className="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`install-panel-${tab.id}`}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-                onClick={() => setActiveTab(tab.id)}
-                onKeyDown={handleKeyDown}
-              >
-                {tab.label}
-              </button>
-            ))}
+      <ol className="install-rows">
+        <li className="install-row">
+          <div className="install-row-label">
+            <span className="install-row-number" aria-hidden="true">
+              01
+            </span>
+            <span className="install-row-title">Add the skill</span>
           </div>
-
-          <div
-            id="install-panel-npx"
-            role="tabpanel"
-            aria-labelledby="install-tab-npx"
-            hidden={activeTab !== 'npx'}
-            className="tab-panel"
-          >
-            <div className="code-row">
-              <code className="code-block mono">{NPX_COMMAND}</code>
-              <CopyButton text={NPX_COMMAND} label="Copy command" />
+          <div className="install-row-content">
+            <div className="tablist" role="tablist" aria-label="Install method">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  id={`install-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  className="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`install-panel-${tab.id}`}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={handleKeyDown}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            <p className="tab-note">Auto-detects any agent that supports the Agent Skills spec — Cursor, Codex, Copilot, Gemini CLI, and 50+ more.</p>
-          </div>
 
-          <div
-            id="install-panel-claude"
-            role="tabpanel"
-            aria-labelledby="install-tab-claude"
-            hidden={activeTab !== 'claude'}
-            className="tab-panel"
-          >
-            <div className="code-row">
-              <code className="code-block mono">{MARKETPLACE_COMMAND}</code>
-              <CopyButton text={MARKETPLACE_COMMAND} label="Copy command" />
+            <div
+              id="install-panel-npx"
+              role="tabpanel"
+              aria-labelledby="install-tab-npx"
+              hidden={activeTab !== 'npx'}
+              className="tab-panel"
+            >
+              <div className="code-row">
+                <code className="code-block mono">{NPX_COMMAND}</code>
+                <CopyButton text={NPX_COMMAND} label="Copy command" />
+              </div>
             </div>
+
+            <div
+              id="install-panel-claude"
+              role="tabpanel"
+              aria-labelledby="install-tab-claude"
+              hidden={activeTab !== 'claude'}
+              className="tab-panel"
+            >
+              <div className="code-row">
+                <code className="code-block mono">{MARKETPLACE_COMMAND}</code>
+                <CopyButton text={MARKETPLACE_COMMAND} label="Copy command" />
+              </div>
+              <div className="code-row">
+                <code className="code-block mono">{PLUGIN_INSTALL_COMMAND}</code>
+                <CopyButton text={PLUGIN_INSTALL_COMMAND} label="Copy command" />
+              </div>
+            </div>
+
+            <p className="tab-note">Works with Claude Code, Cursor, Codex, Copilot, Gemini CLI and 50+ more agents.</p>
+          </div>
+        </li>
+
+        <li className="install-row">
+          <div className="install-row-label">
+            <span className="install-row-number" aria-hidden="true">
+              02
+            </span>
+            <span className="install-row-title">Ask your agent</span>
+          </div>
+          <div className="install-row-content">
             <div className="code-row">
-              <code className="code-block mono">{PLUGIN_INSTALL_COMMAND}</code>
-              <CopyButton text={PLUGIN_INSTALL_COMMAND} label="Copy command" />
+              <code className="code-block mono">{AGENT_PROMPT}</code>
+              <CopyButton text={AGENT_PROMPT} label="Copy prompt" />
             </div>
           </div>
-        </div>
+        </li>
 
-        <div className="get-it-usage">
-          <p className="get-it-label">Then ask your agent:</p>
-          <div className="code-row">
-            <code className="code-block mono">{AGENT_PROMPT}</code>
-            <CopyButton text={AGENT_PROMPT} label="Copy prompt" />
+        <li className="install-row">
+          <div className="install-row-label">
+            <span className="install-row-number" aria-hidden="true">
+              03
+            </span>
+            <span className="install-row-title">Drop it in</span>
           </div>
-
-          <p className="get-it-label">It generates a component you drop in:</p>
-          <pre className="code-block mono code-snippet">{USAGE_SNIPPET}</pre>
-        </div>
-      </div>
+          <div className="install-row-content">
+            <pre className="code-block mono code-snippet">{USAGE_SNIPPET}</pre>
+          </div>
+        </li>
+      </ol>
     </section>
   )
 }

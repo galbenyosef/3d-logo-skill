@@ -1,14 +1,13 @@
-/* STRATOS — anti-grav racing HUD above a cloud deck at dusk.
-   Only Michroma (display caps) and the mono `//` telemetry idiom survive
-   from Wipeout; every control is soft, frosted and native to the sky —
-   no chamfers, no hard fills. Frozen token contract (shared with a sibling
-   project — do not change the values below): sky gradient stops, cloud
-   colors, glass panel formula, text colors, and the 2-family / 3-size /
-   3-weight type budget (nothing >= 600). See lean-ui + .impeccable.md. */
+/* STRATOS — crisp horizon at dusk: pin-sharp stars, a hard-edged sun, flat
+   lit cloud banks. Only Michroma (display caps) and the mono `//` telemetry
+   idiom survive from Wipeout; every control is soft, frosted and native to
+   the sky — no chamfers, no hard fills, but the sky itself is never soft:
+   no `filter: blur` anywhere (.impeccable.md "crisp over soft"). Frozen
+   token contract (shared with a sibling project — do not change the values
+   below): sky gradient stops, cloud colors, glass panel formula, text
+   colors, and the 2-family / 3-size / 2-weight type budget (nothing >= 600).
+   See lean-ui + .impeccable.md. */
 :root {
-  /* Height of screen 2's bright cloud-sea band; screen-2 content starts below it. */
-  --cloud-sea-height: 300px;
-
   color-scheme: dark;
 
   /* ---- Frozen: sky + cloud + glass + text colors ---- */
@@ -51,9 +50,9 @@
   --font-display: 'Michroma', 'Arial Narrow', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --text-xs: 11px;
-  --text-body: 15px;
-  --text-display: clamp(1.85rem, 1.15rem + 3.1vw, 3.75rem);
+  --text-sm: 13px;
+  --text-body: 17px;
+  --text-display: clamp(2.5rem, 1.3rem + 4.4vw, 5rem);
 
   --weight-normal: 400;
   --weight-medium: 500;
@@ -71,6 +70,12 @@
   --space-7: 48px;
 
   --shadow-resting: 0 8px 30px -12px rgba(20, 22, 58, 0.55);
+
+  /* Reserved strip at the very bottom of screen 1 for .scroll-cue, which is
+     position:absolute (centred, every layout) and so no longer pushes the
+     dock/grid content up on its own — .screen-1-inner's own bottom padding
+     has to leave this much room instead, or a tall dock overlaps it. */
+  --scroll-cue-clearance: 54px;
 }
 
 * {
@@ -133,18 +138,26 @@ a {
   outline-offset: 2px;
 }
 
-/* ---------- Sky: skybox + parallax cloud deck, scoped to screen 1 ----------
+/* ---------- Sky: crisp horizon, scoped to screen 1 ----------
    A normal (non-fixed) absolutely-positioned layer sized to screen 1's own
-   box — this is what makes the transition into screen 2's cloud-sea
-   seamless: both are ordinary document content, not a viewport-fixed
-   backdrop that would show a fresh gradient at every scroll position. */
+   box — this is what makes the transition into screen 2 seamless: both are
+   ordinary document content, not a viewport-fixed backdrop that would show
+   a fresh gradient at every scroll position. Layer order back to front:
+   gradient (below) -> vignette -> stars -> sun -> 3 cloud banks -> grain. */
 .sky {
   position: absolute;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 38%, var(--sky-pink) 72%, var(--sky-horizon) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 30%,
+    var(--sky-pink) 58%,
+    var(--sky-horizon) 76%,
+    var(--sky-horizon) 100%
+  );
 }
 
 /* Darkens the upper sky further so the headline/subline always clear
@@ -155,88 +168,101 @@ a {
   background: linear-gradient(180deg, rgba(20, 22, 58, 0.55) 0%, rgba(20, 22, 58, 0.22) 26%, transparent 48%);
 }
 
-/* Ground haze: an atmospheric fade near the bottom edge, independent of the
-   frozen glass-panel formula, so the dock's glass reliably clears AA even
-   where it sits over the pink/peach lower band. */
-.sky-haze-bottom {
+/* Pin-sharp stars, upper ~55% of the sky. `slice` covers the whole band
+   width (cropping overflow) instead of letterboxing it. */
+.sky-stars {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 42%;
-  background: linear-gradient(180deg, transparent 0%, rgba(20, 22, 58, 0.4) 100%);
+  inset: 0;
+  width: 100%;
+  height: 55%;
+  display: block;
 }
 
-.cloud-layer {
+.sky-star-twinkle {
+  animation-name: star-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes star-twinkle {
+  from { opacity: 0.2; }
+  to { opacity: 0.9; }
+}
+
+/* Hard-edged sun disc + a larger, softer halo behind it — no blur filter on
+   either; the halo's own radial falloff is what reads as "glow". Positioned
+   by useSunPosition (App.tsx) via --sun-x/--sun-y/--sun-r on .screen-1; the
+   values below are the first-paint fallback before that measurement runs. */
+.sky-sun-halo,
+.sky-sun {
   position: absolute;
-  left: -25%;
-  width: 150%;
+  left: var(--sun-x, 70%);
+  top: var(--sun-y, 38%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sky-sun-halo {
+  width: calc(var(--sun-r, 90px) * 4);
+  height: calc(var(--sun-r, 90px) * 4);
+  background: radial-gradient(closest-side, rgba(255, 201, 163, 0.35), transparent);
+}
+
+.sky-sun {
+  width: calc(var(--sun-r, 90px) * 2);
+  height: calc(var(--sun-r, 90px) * 2);
+  background: linear-gradient(180deg, #fff1e0 0%, #ffc9a3 55%, #f29ba8 100%);
+}
+
+/* Three flat, hard-edged cumulus silhouettes tiling along the bottom edge —
+   see lib/cloudBank.ts for the seeded generator. Nearer = darker, bigger
+   bumps; the near bank's fill is exactly --sky-top, which is what makes the
+   screen 1 -> screen 2 transition seamless (screen 2's own background). */
+.cloud-bank {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: var(--bank-h);
+  width: calc(100% + var(--bank-h) * 4);
+  background-repeat: repeat-x;
+  background-position: left bottom;
+  background-size: auto 100%;
   will-change: transform;
 }
 
-/* Softness comes from each gradient's own gradual transparent falloff, not
-   a `filter: blur()` — full-viewport animated blur is punishingly expensive
-   on a software (non-GPU) rasterizer, e.g. the swiftshader Chromium this
-   repo's Playwright config uses, and it buys no visible improvement over a
-   wide, gentle radial falloff. */
-.cloud-layer-1 {
-  bottom: -6%;
-  height: 30%;
-  opacity: 0.85;
-  background:
-    radial-gradient(42% 70% at 18% 60%, var(--cloud) 0%, transparent 62%),
-    radial-gradient(34% 55% at 42% 78%, var(--cloud-shadow) 0%, transparent 60%),
-    radial-gradient(48% 62% at 68% 55%, var(--cloud) 0%, transparent 62%),
-    radial-gradient(30% 50% at 90% 68%, var(--cloud-shadow) 0%, transparent 60%);
-  animation: drift-1 48s ease-in-out infinite alternate;
+@keyframes bank-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(var(--bank-h) * -4)); }
 }
 
-.cloud-layer-2 {
-  bottom: 14%;
-  height: 26%;
-  opacity: 0.65;
-  background:
-    radial-gradient(38% 60% at 10% 50%, var(--cloud-shadow) 0%, transparent 58%),
-    radial-gradient(46% 65% at 40% 62%, var(--cloud) 0%, transparent 60%),
-    radial-gradient(36% 55% at 74% 48%, var(--cloud-shadow) 0%, transparent 58%);
-  animation: drift-2 72s ease-in-out infinite alternate;
+.cloud-bank-far {
+  /* Tall enough for its crowns to rise into the sun's lower half and break
+     up the horizon band, instead of leaving a dead flat peach expanse
+     between the dock and the cloud line. */
+  --bank-h: 52svh;
+  animation: bank-drift 240s linear infinite;
 }
 
-.cloud-layer-3 {
-  bottom: 32%;
-  height: 22%;
-  opacity: 0.42;
-  background:
-    radial-gradient(40% 60% at 28% 55%, var(--cloud) 0%, transparent 58%),
-    radial-gradient(34% 50% at 66% 45%, var(--cloud-shadow) 0%, transparent 56%);
-  animation: drift-3 100s ease-in-out infinite alternate;
+.cloud-bank-mid {
+  --bank-h: 34svh;
+  animation: bank-drift 170s linear infinite;
 }
 
-.cloud-layer-4 {
-  top: 4%;
-  height: 18%;
-  opacity: 0.24;
-  background:
-    radial-gradient(36% 55% at 22% 45%, var(--cloud) 0%, transparent 55%),
-    radial-gradient(30% 45% at 60% 55%, var(--cloud) 0%, transparent 55%);
-  animation: drift-4 130s ease-in-out infinite alternate;
+.cloud-bank-near {
+  --bank-h: 17svh;
+  animation: bank-drift 120s linear infinite;
 }
 
-@keyframes drift-1 {
-  from { transform: translateX(-4%); }
-  to { transform: translateX(4%); }
-}
-@keyframes drift-2 {
-  from { transform: translateX(3%); }
-  to { transform: translateX(-5%); }
-}
-@keyframes drift-3 {
-  from { transform: translateX(-3%); }
-  to { transform: translateX(6%); }
-}
-@keyframes drift-4 {
-  from { transform: translateX(2%); }
-  to { transform: translateX(-4%); }
+/* Static full-sky grain — kills gradient banding without a blur filter. */
+.sky-grain {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  opacity: 0.06;
+  mix-blend-mode: soft-light;
 }
 
 /* ---------- Glass: the one dark-panel formula every dock/container lives on ---------- */
@@ -257,10 +283,9 @@ a {
   z-index: 1;
 }
 
-/* isolation:isolate gives each screen its own stacking context, so its
-   z-index:-1 background (.sky in screen 1, .screen-2-ground in screen 2)
-   stays contained and can never end up interleaved with the other
-   screen's background or content. */
+/* isolation:isolate gives each screen its own stacking context, so screen
+   1's z-index:-1 .sky background stays contained and can never end up
+   interleaved with screen 2's content. */
 .screen {
   position: relative;
   isolation: isolate;
@@ -272,6 +297,11 @@ a {
 .screen-1 {
   min-height: 100vh;
   min-height: 100svh;
+  /* First-paint fallback for the sun disc, before useSunPosition's
+     ResizeObserver has measured the coin (lib/useSunPosition.ts). */
+  --sun-x: 70%;
+  --sun-y: 38%;
+  --sun-r: 90px;
 }
 
 /* The max-width column lives here, one level in from .screen-1 itself, so
@@ -284,7 +314,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-4) var(--scroll-cue-clearance);
   max-width: 1280px;
   margin: 0 auto;
 }
@@ -346,7 +376,7 @@ a {
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   letter-spacing: 0.04em;
   max-width: 100%;
@@ -416,24 +446,6 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.coin-glow {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: min(75%, 480px);
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 201, 163, 0.55) 0%, rgba(201, 143, 181, 0.32) 38%, transparent 62%);
-  filter: blur(18px);
-  animation: glow-pulse 7s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
-@keyframes glow-pulse {
-  from { opacity: 0.75; }
-  to { opacity: 1; }
 }
 
 .coin-canvas-wrap {
@@ -541,7 +553,7 @@ a {
   align-items: center;
   gap: var(--space-2);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -550,7 +562,7 @@ a {
 
 .control-note {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-dim);
 }
 
@@ -577,7 +589,7 @@ a {
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-normal);
   color: var(--text);
   white-space: nowrap;
@@ -623,7 +635,7 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -633,7 +645,7 @@ a {
 
 .status {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-dim);
   min-height: 1.4em;
   white-space: nowrap;
@@ -649,9 +661,15 @@ a {
   color: var(--text);
 }
 
-/* Scroll cue at the foot of screen 1. */
+/* Scroll cue: centred at the very bottom of screen 1 on every layout — not
+   part of the copy/dock flow (it used to get lost drifting over the sky at
+   desktop widths), always sitting over the near bank's solid fill. */
 .scroll-cue {
-  align-self: center;
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  z-index: 1;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -659,7 +677,7 @@ a {
   color: var(--text-dim);
   text-decoration: none;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   animation: cue-bob 2.2s ease-in-out infinite alternate;
@@ -669,16 +687,11 @@ a {
   color: var(--text);
 }
 
-.scroll-cue-chevrons {
-  color: var(--accent-2);
-  font-size: var(--text-body);
-  transform: rotate(90deg);
-  line-height: 1;
-}
-
+/* Keeps the centring translateX(-50%) alongside the bob's translateY —
+   `transform` in a keyframe replaces the whole property, not just one axis. */
 @keyframes cue-bob {
-  from { transform: translateY(0); }
-  to { transform: translateY(4px); }
+  from { transform: translateX(-50%) translateY(0); }
+  to { transform: translateX(-50%) translateY(4px); }
 }
 
 /* ---------- Desktop: two-column screen 1 ---------- */
@@ -687,12 +700,12 @@ a {
   .screen-1-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-    grid-template-areas: 'copy stage' 'dock stage' 'cue stage';
+    grid-template-areas: 'copy stage' 'dock stage';
     align-content: center;
     align-items: start;
     column-gap: var(--space-7);
     row-gap: var(--space-4);
-    padding: var(--space-6) var(--space-6) var(--space-5);
+    padding: var(--space-6) var(--space-6) var(--scroll-cue-clearance);
   }
 
   .hero-copy {
@@ -713,10 +726,8 @@ a {
     min-height: 0;
   }
 
-  .scroll-cue {
-    grid-area: cue;
-    justify-self: start;
-    align-self: end;
+  .coin-canvas-wrap {
+    width: min(100%, 640px, 72svh);
   }
 }
 
@@ -727,16 +738,16 @@ a {
    height on a narrow-but-tall phone and collide with the CTAs above it. */
 
 @media (max-width: 1023px) {
+  :root {
+    --text-display: clamp(2.1rem, 1.4rem + 5vw, 2.9rem);
+  }
+
   .screen-1-inner {
     gap: var(--space-2);
   }
 
   .hero-copy {
     text-align: left;
-  }
-
-  .headline {
-    font-size: clamp(1.7rem, 1.2rem + 4.5vw, 2.6rem);
   }
 
   .coin-stage {
@@ -751,6 +762,22 @@ a {
   .control-row {
     flex-direction: row;
   }
+
+  /* The dock covers most of a mobile screen's width, hiding the banks
+     behind it almost entirely — raise all three so the far bank's crowns
+     clear the dock's top edge and cross the lower sun, instead of only
+     broken fragments peeking out at the left/right margins. */
+  .cloud-bank-far {
+    --bank-h: 46svh;
+  }
+
+  .cloud-bank-mid {
+    --bank-h: 34svh;
+  }
+
+  .cloud-bank-near {
+    --bank-h: 22svh;
+  }
 }
 
 /* ---------- Short viewports: compress before anything overflows. Comes
@@ -760,7 +787,7 @@ a {
 @media (max-height: 760px) {
   .screen-1-inner {
     padding-top: var(--space-3);
-    padding-bottom: var(--space-3);
+    padding-bottom: var(--scroll-cue-clearance);
   }
 
   .coin-stage {
@@ -796,173 +823,102 @@ a {
   }
 }
 
-/* ---------- Screen 2: one continuous descent into a cloud sea, then night ---------- */
-
+/* ---------- Screen 2: the calm floor the sky sinks into ----------
+   The near cloud bank's fill is exactly --sky-top (see Sky.tsx), so a flat
+   --sky-top background here picks up with no seam at all — no separate
+   seam band needed. A very gentle darken toward the bottom keeps it from
+   reading as a single dead-flat slab. */
 .screen-2 {
   min-height: 100vh;
   min-height: 100svh;
-  display: flex;
-  align-items: flex-start;
-}
-
-/* Picks up exactly where screen 1's horizon ends (same --sky-horizon hex)
-   and descends through the same frozen palette into --sky-top — no hard
-   edge, because both screens are ordinary scrolled content on the same
-   continuous gradient logic, not a fixed backdrop meeting a flat scrim. */
-.screen-2-ground {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  background: linear-gradient(
-    180deg,
-    var(--sky-horizon) 0,
-    var(--sky-pink) 80px,
-    var(--cloud-shadow) 170px,
-    var(--sky-mid) 240px,
-    var(--sky-top) var(--cloud-sea-height),
-    var(--sky-top) 100%
-  );
-}
-
-/* Screen 1's lower cloud deck and screen 2's cloud-sea never match in colour
-   at the boundary, so a soft cloud band straddles the seam and hides it.
-   Positioned (z-index 0) so it paints over both screens' z-index:-1 skies,
-   but sits in the empty gap between the dock and the Install heading. */
-.screen-2 {
   position: relative;
-}
-
-.screen-2::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -120px;
-  height: 240px;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(28% 60% at 12% 50%, rgba(246, 238, 255, 0.7) 0%, transparent 70%),
-    radial-gradient(30% 55% at 38% 42%, rgba(185, 168, 224, 0.6) 0%, transparent 70%),
-    radial-gradient(32% 60% at 64% 55%, rgba(246, 238, 255, 0.7) 0%, transparent 70%),
-    radial-gradient(28% 55% at 90% 45%, rgba(201, 143, 181, 0.55) 0%, transparent 70%),
-    linear-gradient(180deg, transparent 0%, rgba(214, 196, 236, 0.85) 40%, rgba(214, 196, 236, 0.85) 60%, transparent 100%);
-}
-
-/* A dense, unbroken cloud-top texture for the top ~30% — screen 1's sky
-   "sinks into" this. Static (no animation): screen 2 is the calm floor of
-   the descent, and a static gradient/shape costs nothing on a software
-   rasterizer. */
-.cloud-sea {
-  position: absolute;
-  left: -20%;
-  right: -20%;
-  top: 0;
-  height: var(--cloud-sea-height);
-  opacity: 0.9;
-  background:
-    radial-gradient(30% 65% at 4% 45%, var(--cloud) 0%, transparent 58%),
-    radial-gradient(34% 70% at 22% 30%, var(--cloud-shadow) 0%, transparent 56%),
-    radial-gradient(32% 68% at 40% 48%, var(--cloud) 0%, transparent 58%),
-    radial-gradient(30% 65% at 58% 28%, var(--cloud-shadow) 0%, transparent 56%),
-    radial-gradient(34% 70% at 76% 46%, var(--cloud) 0%, transparent 58%),
-    radial-gradient(30% 65% at 94% 32%, var(--cloud-shadow) 0%, transparent 56%),
-    radial-gradient(40% 80% at 50% 70%, var(--cloud) 0%, transparent 62%);
-}
-
-/* A handful of faint stars in the deep, indigo part of the descent. A very
-   slow opacity twinkle (transform/opacity only) — subtle enough to feel
-   like a detail, not decoration competing with the panels below it. */
-.star {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 5px 1px rgba(255, 255, 255, 0.55);
-  opacity: 0.5;
-  animation: star-twinkle 5s ease-in-out infinite alternate;
-}
-
-.star-1 {
-  top: 46%;
-  left: 16%;
-  animation-delay: 0s;
-}
-
-.star-2 {
-  top: 57%;
-  left: 78%;
-  animation-delay: 1.6s;
-}
-
-.star-3 {
-  top: 68%;
-  left: 48%;
-  animation-delay: 3.2s;
-}
-
-@keyframes star-twinkle {
-  from { opacity: 0.25; }
-  to { opacity: 0.75; }
+  background: linear-gradient(180deg, var(--sky-top) 0%, #101228 100%);
 }
 
 .screen-2-inner {
   position: relative;
-  /* Above the seam cloud band (.screen-2::before, z-index 0). */
-  z-index: 1;
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: var(--cloud-sea-height) var(--space-4) var(--space-6);
+  padding: var(--space-7) var(--space-4) var(--space-7);
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
 }
 
-.section-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-4);
-}
-
 .section-title {
-  margin: 0;
+  margin: 0 0 var(--space-6);
   font-family: var(--font-display);
-  font-size: clamp(1.3rem, 1.05rem + 1vw, 1.85rem);
+  /* Same scale as the hero headline — a 4th, section-specific size was one
+     size too many for the 3-size budget. */
+  font-size: var(--text-display);
   font-weight: var(--weight-normal);
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--text);
 }
 
-.section-eyebrow {
+/* ---------- Install: one numbered 3-row flow ---------- */
+
+.install-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.install-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.install-row:last-child {
+  border-bottom: none;
+}
+
+.install-row-label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.install-row-number {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.install-row-title {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-.get-it-grid {
+.install-row-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
+  max-width: 720px;
+  min-width: 0;
 }
 
 @media (min-width: 900px) {
-  .get-it-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
+  .install-row {
+    grid-template-columns: 220px 1fr;
+    gap: var(--space-6);
+    padding: var(--space-6) 0;
   }
-}
 
-.tabs {
-  max-width: 640px;
+  .install-row-label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
 }
 
 .tablist {
@@ -980,7 +936,7 @@ a {
   border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-4);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: var(--weight-normal);
@@ -1017,7 +973,7 @@ a {
 
 .tab-note {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-dim);
 }
 
@@ -1034,10 +990,18 @@ a {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   padding: var(--space-3);
-  font-size: var(--text-xs);
+  /* 17px reads better as a command to actually type/copy, but it wraps
+     "npx skills add ..." onto 2 lines below ~900px — drop to 13px there. */
+  font-size: var(--text-body);
   color: var(--text);
   overflow-x: auto;
   white-space: pre;
+}
+
+@media (max-width: 899px) {
+  .code-block {
+    font-size: var(--text-sm);
+  }
 }
 
 .code-snippet {
@@ -1071,7 +1035,7 @@ a {
   border: 1px solid var(--control-border);
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   letter-spacing: 0.04em;
   color: var(--text-dim);
   cursor: pointer;
@@ -1086,66 +1050,10 @@ a {
   box-shadow: var(--control-highlight), var(--control-glow);
 }
 
-.get-it-usage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 640px;
-}
-
-.get-it-label {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-/* ---------- How it works: 3 one-line steps ---------- */
-
-.how-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-5);
-}
-
-.how-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.how-step-index {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--control-fill);
-  border: 1px solid var(--control-border);
-  font-family: var(--font-mono);
-  font-weight: var(--weight-medium);
-  font-size: var(--text-xs);
-  color: var(--accent-2);
-}
-
-.how-step-text {
-  margin: 0;
-  font-size: var(--text-body);
-  color: var(--text);
-}
-
 /* ---------- Footer ---------- */
 
 .footer {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-dim);
   text-align: center;
 }
@@ -1187,13 +1095,21 @@ a {
   to { opacity: 0; }
 }
 
-/* Every animation on the page collapses to effectively instant under
-   reduced motion — clouds, coin bob, glow pulse, star twinkle and scroll
-   cue included — satisfying "static" without a second code path per
-   effect. */
+/* Most animations on the page collapse to effectively instant under reduced
+   motion, satisfying "static" without a second code path per effect. The
+   sky's cloud banks, twinkling stars and the coin's bob are the exception:
+   an infinite animation squashed to 0.01ms still flickers between its
+   keyframe positions every frame, which reads as broken, not calm — so
+   those get a real `animation: none` instead. */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+
+  .cloud-bank,
+  .sky-star-twinkle,
+  .coin-canvas-wrap {
+    animation: none;
   }
 }
