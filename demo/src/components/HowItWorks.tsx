@@ -16,14 +16,23 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section className="how" aria-labelledby="how-title">
-      <h2 id="how-title" className="section-title">
-        How it works
-      </h2>
+      <div className="section-head">
+        <span className="section-numeral" aria-hidden="true">
+          03
+        </span>
+        <div className="section-head-text">
+          <span className="dr-label">SEQUENCE // AG-SYS 03</span>
+          <h2 id="how-title" className="section-title">
+            How it works
+          </h2>
+        </div>
+        <span className="section-head-rule" aria-hidden="true" />
+      </div>
       <ol className="how-steps">
         {STEPS.map((step, i) => (
           <li key={step.title} className="how-step">
-            <span className="how-step-index" aria-hidden="true">
-              {i + 1}
+            <span className="how-step-index chamfer" aria-hidden="true">
+              {String(i + 1).padStart(2, '0')}
             </span>
             <div>
               <p className="how-step-title">{step.title}</p>

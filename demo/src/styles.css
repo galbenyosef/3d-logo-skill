@@ -280,6 +280,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .section-title {
@@ -290,14 +292,28 @@ a {
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--text);
+  text-wrap: balance;
 }
 
 .section-head-rule {
-  flex: 1;
-  min-width: 32px;
+  flex: 1 1 96px;
+  min-width: 96px;
   height: 6px;
   background: var(--hazard);
   align-self: center;
+}
+
+@media (max-width: 640px) {
+  /* A wrapped multi-line title otherwise squeezes the rule to a sliver —
+     give it its own full-width row underneath instead. */
+  .section-head {
+    flex-wrap: wrap;
+  }
+
+  .section-head-rule {
+    flex-basis: 100%;
+    margin-top: var(--space-2);
+  }
 }
 
 /* ---------- Hero ---------- */
@@ -612,6 +628,9 @@ a {
     calc(100% - 13px) center;
   background-size: 5px 5px;
   background-repeat: no-repeat;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .select:focus-visible {
@@ -686,10 +705,6 @@ a {
 
 /* ---------- Get it in your project ---------- */
 
-.get-it {
-  padding: var(--space-6) 0;
-  border-top: 1px solid var(--border);
-}
 
 .get-it-grid {
   display: flex;
@@ -720,10 +735,12 @@ a {
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--border);
   padding: var(--space-2) var(--space-4);
-  font-size: var(--text-body);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   font-weight: var(--weight-normal);
   color: var(--text-dim);
   cursor: pointer;
@@ -731,13 +748,13 @@ a {
 
 .tab:hover {
   color: var(--text);
-  border-color: var(--border-strong);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .tab[aria-selected='true'] {
-  background: var(--accent-ink);
-  border-color: var(--accent-strong);
-  color: var(--accent);
+  background: var(--accent);
+  box-shadow: none;
+  color: var(--accent-ink);
   font-weight: var(--weight-medium);
 }
 
@@ -762,9 +779,9 @@ a {
 .code-block {
   flex: 1;
   min-width: 0;
+  clip-path: var(--chamfer-sm);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--border);
   padding: var(--space-3);
   font-size: var(--text-small);
   color: var(--text);
@@ -802,18 +819,24 @@ a {
   align-items: center;
   gap: var(--space-1);
   flex-shrink: 0;
+  clip-path: var(--chamfer-sm);
   background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--border);
   padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
   font-size: var(--text-small);
+  letter-spacing: 0.04em;
   color: var(--text-dim);
   cursor: pointer;
 }
 
 .copy-btn:hover {
   color: var(--text);
-  border-color: var(--border-strong);
+  box-shadow: inset 0 0 0 1px var(--accent-2);
+}
+
+.copy-btn:focus-visible {
+  outline-offset: -4px;
 }
 
 .get-it-usage {
@@ -825,17 +848,15 @@ a {
 
 .get-it-label {
   margin: 0;
+  font-family: var(--font-mono);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-dim);
 }
 
 /* ---------- How it works ---------- */
-
-.how {
-  padding: var(--space-6) 0;
-  border-top: 1px solid var(--border);
-}
 
 .how-steps {
   list-style: none;
@@ -853,16 +874,17 @@ a {
 
 .how-step-index {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
   font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
   font-size: var(--text-small);
-  color: var(--text-dim);
+  color: var(--accent-2);
 }
 
 .how-step-title {
