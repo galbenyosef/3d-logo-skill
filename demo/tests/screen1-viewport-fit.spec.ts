@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 // The 100vh rule: screen 1 must let a visitor read the headline, see the
 // coin, switch presets, upload their own logo, and change the reflection
@@ -17,6 +17,18 @@ const VIEWPORTS = [
   { width: 375, height: 667 },
 ]
 
+type Box = { x: number; y: number; width: number; height: number }
+
+function intersects(a: Box, b: Box): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+}
+
+async function boxOf(locator: ReturnType<Page['locator']>): Promise<Box> {
+  const box = await locator.boundingBox()
+  if (!box) throw new Error('expected a bounding box')
+  return box
+}
+
 test('screen 1 fits in exactly one viewport at every required size (STRATOS 100vh rule)', async ({ page }) => {
   await page.setViewportSize(VIEWPORTS[0])
   await page.goto('/')
@@ -30,8 +42,14 @@ test('screen 1 fits in exactly one viewport at every required size (STRATOS 100v
     const targets: Array<[string, ReturnType<typeof page.locator>]> = [
       ['canvas', page.locator('canvas')],
       ['upload control', page.getByRole('button', { name: 'Choose an image' })],
-      ['preset row container', page.getByRole('group', { name: 'Sample logos' })],
+      ['preset row container', page.getByRole('group', { name: 'Presets' })],
       ['env select', page.locator('#env-preset')],
+      // The full dock (its outer container), not just the controls inside
+      // it — a dock whose own bottom edge falls below the fold can still
+      // pass a check on individual controls near its top (pass-2 bug: the
+      // status line and scroll cue fell off-screen at 390x844 while the
+      // preset row above them still fit).
+      ['dock', page.locator('.dock')],
     ]
 
     for (const [name, locator] of targets) {
@@ -45,6 +63,21 @@ test('screen 1 fits in exactly one viewport at every required size (STRATOS 100v
         ).toBeLessThanOrEqual(viewport.height + 1)
       }
     }
+
+    // The coin must never grow into the CTA row above it (pass-2 bug: at
+    // 375x667 the coin, sized purely from width, overflowed its budgeted
+    // height and visually overlapped "Try your logo" / "Star on GitHub").
+    const canvasBox = await boxOf(page.locator('canvas'))
+    const tryLogoBox = await boxOf(page.getByRole('button', { name: 'Try your logo' }))
+    const starBox = await boxOf(page.getByRole('link', { name: /Star on GitHub/ }))
+    expect(
+      intersects(canvasBox, tryLogoBox),
+      `canvas should not overlap the "Try your logo" CTA at ${viewport.width}x${viewport.height}`,
+    ).toBe(false)
+    expect(
+      intersects(canvasBox, starBox),
+      `canvas should not overlap the "Star on GitHub" CTA at ${viewport.width}x${viewport.height}`,
+    ).toBe(false)
 
     // No horizontal scroll anywhere on the page — not just within screen 1.
     const overflow = await page.evaluate(() => ({
