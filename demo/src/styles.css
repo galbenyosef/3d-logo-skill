@@ -126,11 +126,24 @@ a {
   outline-offset: 2px;
 }
 
+.chamfer {
+  clip-path: var(--chamfer-sm);
+}
+
+.chamfer-lg {
+  clip-path: var(--chamfer-lg);
+}
+
 /* clip-path clips its own outline along with the box, so an outside ring on
    a chamfered element is invisible on the two cut corners. Every chamfered
-   interactive element gets the `.chamfer` class and an inset ring instead. */
+   interactive element gets the `.chamfer`/`.chamfer-lg` class and an inset
+   ring instead. */
 .chamfer:focus-visible {
   outline-offset: -4px;
+}
+
+.chamfer-lg:focus-visible {
+  outline-offset: -6px;
 }
 
 /* ---------- Layout ---------- */
@@ -352,22 +365,21 @@ a {
 
 .stage {
   position: relative;
-  background: var(--bg-vignette);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-container);
-  min-height: 420px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  min-height: 460px;
   min-width: 0; /* grid items default to min-width:auto, which would let the
                    canvas's intrinsic size block the track from shrinking */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5);
-  transition: border-color 0.15s ease;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  transition: box-shadow 0.15s ease;
 }
 
 .stage-dragging {
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-2);
 }
 
 .stage-canvas {
@@ -379,78 +391,127 @@ a {
 
 .stage-hint {
   margin: var(--space-4) 0 0;
+  font-family: var(--font-mono);
   font-size: var(--text-small);
+  letter-spacing: 0.04em;
   color: var(--text-faint);
   text-align: center;
 }
 
 .stage-overlay {
   position: absolute;
-  inset: var(--space-2);
+  inset: var(--space-3);
+  clip-path: var(--chamfer-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--accent);
-  border-radius: var(--radius-container);
-  background: rgba(11, 14, 18, 0.72);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: rgba(11, 11, 13, 0.82);
   color: var(--accent);
+  font-family: var(--font-sans);
+  text-transform: uppercase;
   font-size: var(--text-body);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-normal);
+  letter-spacing: 0.04em;
   pointer-events: none;
 }
 
-.stage-thumb {
+/* ---- Pit-lane HUD chips: telemetry readouts framing the stage ---- */
+
+.hud-chip {
   position: absolute;
-  left: var(--space-3);
-  top: var(--space-3);
-  margin: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  background: rgba(20, 24, 30, 0.85);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-control);
+  clip-path: var(--chamfer-sm);
+  background: rgba(21, 21, 24, 0.9);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-small);
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.hud-chip--accent {
+  background: var(--accent);
+  box-shadow: none;
+  color: var(--accent-ink);
+}
+
+.stage-thumb {
+  left: var(--space-3);
+  top: var(--space-3);
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
 }
 
 .stage-thumb img {
   display: block;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
+  width: 22px;
+  height: 22px;
   background: #05070a;
   object-fit: contain;
 }
 
 .stage-thumb figcaption {
-  font-size: var(--text-small);
-  color: var(--text-faint);
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.stage-pause {
+.stage-hud-top-right {
   position: absolute;
   right: var(--space-3);
   top: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stage-hud-top-right .hud-chip {
+  position: static;
+}
+
+.stage-hud-bl {
+  left: var(--space-3);
+  bottom: var(--space-3);
+}
+
+.stage-hud-br {
+  right: var(--space-3);
+  bottom: var(--space-3);
+}
+
+.stage-pause {
+  position: static;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 24, 30, 0.85);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  clip-path: var(--chamfer-sm);
+  background: rgba(21, 21, 24, 0.9);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
   color: var(--text);
   cursor: pointer;
 }
 
 .stage-pause:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-2);
+  color: var(--accent-2);
 }
 
 .stage-pause[aria-pressed='true'] {
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent-2);
+  box-shadow: none;
+}
+
+.stage-pause:focus-visible {
+  outline-offset: -4px;
 }
 
 /* ---------- Controls ---------- */
