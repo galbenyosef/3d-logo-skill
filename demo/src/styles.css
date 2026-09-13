@@ -136,13 +136,155 @@ a {
 /* ---------- Layout ---------- */
 
 .page {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: var(--space-4) var(--space-4) var(--space-6);
-  gap: var(--space-5);
-  max-width: 1200px;
+  padding: var(--space-6) var(--space-4) var(--space-7);
+  gap: var(--space-7);
+  max-width: 1240px;
   width: 100%;
   margin: 0 auto;
+}
+
+/* ---------- Wipeout system: chrome, marks, labels ---------- */
+
+/* Pinned to the browser viewport, not the page — reads as the poster's own
+   crop marks rather than a component of any one section. */
+.viewport-frame {
+  position: fixed;
+  inset: 10px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.top-hazard {
+  height: 4px;
+  background: var(--hazard);
+  width: 100%;
+}
+
+.corner-bracket {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+}
+
+.corner-bracket.tl {
+  top: 0;
+  left: 0;
+  border-top: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+
+.corner-bracket.tr {
+  top: 0;
+  right: 0;
+  border-top: 1px solid var(--border-strong);
+  border-right: 1px solid var(--border-strong);
+}
+
+.corner-bracket.bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+
+.corner-bracket.br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid var(--border-strong);
+  border-right: 1px solid var(--border-strong);
+}
+
+/* Larger, brighter variant for HUD framing (the 3D stage) rather than the
+   dim page-corner crop marks. */
+.corner-bracket--hud {
+  width: 26px;
+  height: 26px;
+}
+
+.corner-bracket--hud.tl,
+.corner-bracket--hud.tr,
+.corner-bracket--hud.bl,
+.corner-bracket--hud.br {
+  border-color: var(--accent-2);
+  border-width: 2px;
+}
+
+/* Decorative code-like micro-label, e.g. "3D-LOGO // AG-SYS 01". */
+.dr-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-small);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.dr-label .dr-accent {
+  color: var(--accent);
+}
+
+/* A row of compressed chevrons used as a speed-line rule. Pure decoration —
+   always aria-hidden at the call site. */
+.chevron-row {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  color: var(--accent);
+  letter-spacing: -0.03em;
+  font-size: var(--text-small);
+  line-height: 1;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Section heading block: giant outline numeral + tracked-out title + a
+   hazard-stripe rule filling the remaining width. Used once per major page
+   section (content is genuinely sequential — see HowItWorks) and reused as
+   a pure wayfinding device for the stage and get-it sections. */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+}
+
+.section-numeral {
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-display);
+  line-height: 0.8;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--border-strong);
+  text-stroke: 1.5px var(--border-strong);
+}
+
+.section-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.section-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-display);
+  font-weight: var(--weight-normal);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.section-head-rule {
+  flex: 1;
+  min-width: 32px;
+  height: 6px;
+  background: var(--hazard);
+  align-self: center;
 }
 
 /* ---------- Hero ---------- */
@@ -447,16 +589,6 @@ a {
 
 .status[data-kind='loading'] {
   color: var(--accent);
-}
-
-/* ---------- Section titles (shared) ---------- */
-
-.section-title {
-  margin: 0 0 var(--space-5);
-  font-size: var(--text-display);
-  font-weight: var(--weight-medium);
-  letter-spacing: -0.01em;
-  color: var(--text);
 }
 
 /* ---------- Get it in your project ---------- */

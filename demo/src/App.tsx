@@ -120,8 +120,16 @@ export default function App() {
   }, [])
 
   return (
-    <div className="page">
-      <Hero onTryLogo={() => fileInputRef.current?.click()} />
+    <>
+      <div className="viewport-frame" aria-hidden="true">
+        <span className="corner-bracket tl" />
+        <span className="corner-bracket tr" />
+        <span className="corner-bracket bl" />
+        <span className="corner-bracket br" />
+      </div>
+      <div className="top-hazard" aria-hidden="true" />
+      <div className="page">
+        <Hero onTryLogo={() => fileInputRef.current?.click()} />
 
       <main className="layout">
         <section
@@ -224,6 +232,7 @@ export default function App() {
           </a>
         </p>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }
