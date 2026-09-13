@@ -15,6 +15,9 @@ const VIEWPORTS = [
   { width: 1280, height: 720 },
   { width: 390, height: 844 },
   { width: 375, height: 667 },
+  // Short landscape windows below 1024px wide use the two-column layout (#25).
+  { width: 1000, height: 583 },
+  { width: 800, height: 600 },
 ]
 
 type Box = { x: number; y: number; width: number; height: number }
@@ -107,6 +110,7 @@ test('the coin stays hero-sized on short desktop viewports', async ({ page }) =>
     { width: 1280, height: 720 },
     { width: 1366, height: 768 },
     { width: 1440, height: 800 },
+    { width: 1000, height: 583 },
   ]) {
     await page.setViewportSize(viewport)
     await page.waitForTimeout(300)
