@@ -160,6 +160,25 @@ a {
   );
 }
 
+/* The hand-painted plate itself (Sky.tsx's <picture>/<img>) — fills .sky via
+   object-fit: cover, fading in over the gradient fallback above once loaded.
+   object-position tuned so the painted sun lands near the coin (~66-68%
+   across on desktop) at 1440x900 and 1280x720. */
+.sky-plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.sky-plate-loaded {
+  opacity: 1;
+}
+
 /* Darkens the upper sky further so the headline/subline always clear
    WCAG AA even before any glass sits behind them. */
 .sky-vignette-top {
