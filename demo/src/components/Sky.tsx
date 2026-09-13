@@ -53,6 +53,7 @@ export function Sky() {
       </picture>
 
       <div className="sky-vignette-top" />
+      <div className="sky-bottom-fade" />
     </div>
   )
 }
