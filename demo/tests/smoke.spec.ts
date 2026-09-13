@@ -40,9 +40,9 @@ test.describe('3D logo skill demo', () => {
     expect(box?.height ?? 0).toBeGreaterThan(50)
 
     const status = page.getByRole('status')
-    await expect(status).toContainText('Storm Cloud')
+    await expect(status).toContainText('Firebird')
 
-    for (const label of ['Crescent', 'Paper Crane', 'Storm Cloud']) {
+    for (const label of ['Koi', 'Manta', 'Firebird']) {
       await page.getByRole('button', { name: label }).click()
       await expect(status).toContainText(label)
     }
