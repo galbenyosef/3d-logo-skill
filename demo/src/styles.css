@@ -138,12 +138,14 @@ a {
   outline-offset: 2px;
 }
 
-/* ---------- Sky: crisp horizon, scoped to screen 1 ----------
+/* ---------- Sky: painted dusk plate, scoped to screen 1 ----------
    A normal (non-fixed) absolutely-positioned layer sized to screen 1's own
    box — this is what makes the transition into screen 2 seamless: both are
    ordinary document content, not a viewport-fixed backdrop that would show
-   a fresh gradient at every scroll position. Layer order back to front:
-   gradient (below) -> vignette -> stars -> sun -> 3 cloud banks -> grain. */
+   a fresh gradient at every scroll position. The gradient below (frozen
+   tokens, unchanged) is the first-paint fallback before the plate image has
+   loaded — see Sky.tsx. Layer order back to front: gradient (below) ->
+   plate img -> breeze canvas -> vignette -> bottom fade. */
 .sky {
   position: absolute;
   inset: 0;
@@ -160,6 +162,43 @@ a {
   );
 }
 
+/* The hand-painted plate itself (Sky.tsx's <picture>/<img>) — fills .sky via
+   object-fit: cover, fading in over the gradient fallback above once loaded.
+   See lib/coverUv.ts for the cover + object-position math the breeze shader
+   mirrors. object-position tuned so the painted sun lands near the coin
+   (~66-68% across on desktop) at 1440x900 and 1280x720. */
+.sky-plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.sky-plate-loaded {
+  opacity: 1;
+}
+
+/* The breeze cinemagraph canvas (SkyBreeze.tsx) — sits exactly over the
+   plate, fading in only once its first frame is drawn so the swap from
+   static img to shader has no visible pop. Absent entirely under reduced
+   motion / no WebGL / a texture load failure (the static plate stays). */
+.sky-breeze {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.sky-breeze-visible {
+  opacity: 1;
+}
+
 /* Darkens the upper sky further so the headline/subline always clear
    WCAG AA even before any glass sits behind them. */
 .sky-vignette-top {
@@ -168,101 +207,13 @@ a {
   background: linear-gradient(180deg, rgba(20, 22, 58, 0.55) 0%, rgba(20, 22, 58, 0.22) 26%, transparent 48%);
 }
 
-/* Pin-sharp stars, upper ~55% of the sky. `slice` covers the whole band
-   width (cropping overflow) instead of letterboxing it. */
-.sky-stars {
+/* Softens the plate's own dark bottom band into screen 2's flat
+   background (--sky-top), so the screen 1 -> screen 2 hand-off has no
+   seam — starts ~80% down the plate, solid by ~93%. */
+.sky-bottom-fade {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 55%;
-  display: block;
-}
-
-.sky-star-twinkle {
-  animation-name: star-twinkle;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-}
-
-@keyframes star-twinkle {
-  from { opacity: 0.2; }
-  to { opacity: 0.9; }
-}
-
-/* Hard-edged sun disc + a larger, softer halo behind it — no blur filter on
-   either; the halo's own radial falloff is what reads as "glow". Positioned
-   by useSunPosition (App.tsx) via --sun-x/--sun-y/--sun-r on .screen-1; the
-   values below are the first-paint fallback before that measurement runs. */
-.sky-sun-halo,
-.sky-sun {
-  position: absolute;
-  left: var(--sun-x, 70%);
-  top: var(--sun-y, 38%);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.sky-sun-halo {
-  width: calc(var(--sun-r, 90px) * 4);
-  height: calc(var(--sun-r, 90px) * 4);
-  background: radial-gradient(closest-side, rgba(255, 201, 163, 0.35), transparent);
-}
-
-.sky-sun {
-  width: calc(var(--sun-r, 90px) * 2);
-  height: calc(var(--sun-r, 90px) * 2);
-  background: linear-gradient(180deg, #fff1e0 0%, #ffc9a3 55%, #f29ba8 100%);
-}
-
-/* Three flat, hard-edged cumulus silhouettes tiling along the bottom edge —
-   see lib/cloudBank.ts for the seeded generator. Nearer = darker, bigger
-   bumps; the near bank's fill is exactly --sky-top, which is what makes the
-   screen 1 -> screen 2 transition seamless (screen 2's own background). */
-.cloud-bank {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: var(--bank-h);
-  width: calc(100% + var(--bank-h) * 4);
-  background-repeat: repeat-x;
-  background-position: left bottom;
-  background-size: auto 100%;
-  will-change: transform;
-}
-
-@keyframes bank-drift {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(var(--bank-h) * -4)); }
-}
-
-.cloud-bank-far {
-  /* Tall enough for its crowns to rise into the sun's lower half and break
-     up the horizon band, instead of leaving a dead flat peach expanse
-     between the dock and the cloud line. */
-  --bank-h: 52svh;
-  animation: bank-drift 240s linear infinite;
-}
-
-.cloud-bank-mid {
-  --bank-h: 34svh;
-  animation: bank-drift 170s linear infinite;
-}
-
-.cloud-bank-near {
-  --bank-h: 17svh;
-  animation: bank-drift 120s linear infinite;
-}
-
-/* Static full-sky grain — kills gradient banding without a blur filter. */
-.sky-grain {
-  position: absolute;
-  inset: 0;
-  background-repeat: repeat;
-  background-size: 180px 180px;
-  opacity: 0.06;
-  mix-blend-mode: soft-light;
+  background: linear-gradient(180deg, transparent 0%, transparent 72%, rgba(20, 22, 58, 0.55) 81%, #14163a 90%, #14163a 100%);
 }
 
 /* ---------- Glass: the one dark-panel formula every dock/container lives on ---------- */
@@ -297,11 +248,6 @@ a {
 .screen-1 {
   min-height: 100vh;
   min-height: 100svh;
-  /* First-paint fallback for the sun disc, before useSunPosition's
-     ResizeObserver has measured the coin (lib/useSunPosition.ts). */
-  --sun-x: 70%;
-  --sun-y: 38%;
-  --sun-r: 90px;
 }
 
 /* The max-width column lives here, one level in from .screen-1 itself, so
@@ -762,22 +708,6 @@ a {
   .control-row {
     flex-direction: row;
   }
-
-  /* The dock covers most of a mobile screen's width, hiding the banks
-     behind it almost entirely — raise all three so the far bank's crowns
-     clear the dock's top edge and cross the lower sun, instead of only
-     broken fragments peeking out at the left/right margins. */
-  .cloud-bank-far {
-    --bank-h: 46svh;
-  }
-
-  .cloud-bank-mid {
-    --bank-h: 34svh;
-  }
-
-  .cloud-bank-near {
-    --bank-h: 22svh;
-  }
 }
 
 /* ---------- Short viewports: compress before anything overflows. Comes
@@ -1105,18 +1035,17 @@ a {
 
 /* Most animations on the page collapse to effectively instant under reduced
    motion, satisfying "static" without a second code path per effect. The
-   sky's cloud banks, twinkling stars and the coin's bob are the exception:
-   an infinite animation squashed to 0.01ms still flickers between its
-   keyframe positions every frame, which reads as broken, not calm — so
-   those get a real `animation: none` instead. */
+   coin's bob is the exception: an infinite animation squashed to 0.01ms
+   still flickers between its keyframe positions every frame, which reads
+   as broken, not calm — it gets a real `animation: none` instead. (The
+   sky's breeze shader isn't a CSS animation at all — SkyBreeze.tsx checks
+   `prefers-reduced-motion` itself and simply never mounts the canvas.) */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
 
-  .cloud-bank,
-  .sky-star-twinkle,
   .coin-canvas-wrap {
     animation: none;
   }

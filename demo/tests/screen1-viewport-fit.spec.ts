@@ -40,7 +40,7 @@ test('screen 1 fits in exactly one viewport at every required size (STRATOS 100v
     await page.waitForTimeout(300)
 
     const targets: Array<[string, ReturnType<typeof page.locator>]> = [
-      ['canvas', page.locator('canvas')],
+      ['canvas', page.locator('.coin-canvas-wrap canvas')],
       ['upload control', page.getByRole('button', { name: 'Upload' })],
       ['preset row container', page.getByRole('group', { name: 'Presets' })],
       ['env select', page.locator('#env-preset')],
@@ -67,7 +67,7 @@ test('screen 1 fits in exactly one viewport at every required size (STRATOS 100v
     // The coin must never grow into the CTA row above it (pass-2 bug: at
     // 375x667 the coin, sized purely from width, overflowed its budgeted
     // height and visually overlapped "Try your logo" / "Star on GitHub").
-    const canvasBox = await boxOf(page.locator('canvas'))
+    const canvasBox = await boxOf(page.locator('.coin-canvas-wrap canvas'))
     const tryLogoBox = await boxOf(page.getByRole('button', { name: 'Try your logo' }))
     const starBox = await boxOf(page.getByRole('link', { name: /Star on GitHub/ }))
     expect(
