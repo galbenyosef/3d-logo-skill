@@ -6,6 +6,9 @@
    colors, glass panel formula, text colors, and the 2-family / 3-size /
    3-weight type budget (nothing >= 600). See lean-ui + .impeccable.md. */
 :root {
+  /* Height of screen 2's bright cloud-sea band; screen-2 content starts below it. */
+  --cloud-sea-height: 300px;
+
   color-scheme: dark;
 
   /* ---- Frozen: sky + cloud + glass + text colors ---- */
@@ -806,7 +809,7 @@ a {
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
 
 /* Picks up exactly where screen 1's horizon ends (same --sky-horizon hex)
@@ -820,13 +823,38 @@ a {
   overflow: hidden;
   background: linear-gradient(
     180deg,
-    var(--sky-horizon) 0%,
-    var(--sky-pink) 9%,
-    var(--cloud-shadow) 19%,
-    var(--sky-mid) 27%,
-    var(--sky-top) 34%,
+    var(--sky-horizon) 0,
+    var(--sky-pink) 80px,
+    var(--cloud-shadow) 170px,
+    var(--sky-mid) 240px,
+    var(--sky-top) var(--cloud-sea-height),
     var(--sky-top) 100%
   );
+}
+
+/* Screen 1's lower cloud deck and screen 2's cloud-sea never match in colour
+   at the boundary, so a soft cloud band straddles the seam and hides it.
+   Positioned (z-index 0) so it paints over both screens' z-index:-1 skies,
+   but sits in the empty gap between the dock and the Install heading. */
+.screen-2 {
+  position: relative;
+}
+
+.screen-2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -120px;
+  height: 240px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(28% 60% at 12% 50%, rgba(246, 238, 255, 0.7) 0%, transparent 70%),
+    radial-gradient(30% 55% at 38% 42%, rgba(185, 168, 224, 0.6) 0%, transparent 70%),
+    radial-gradient(32% 60% at 64% 55%, rgba(246, 238, 255, 0.7) 0%, transparent 70%),
+    radial-gradient(28% 55% at 90% 45%, rgba(201, 143, 181, 0.55) 0%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgba(214, 196, 236, 0.85) 40%, rgba(214, 196, 236, 0.85) 60%, transparent 100%);
 }
 
 /* A dense, unbroken cloud-top texture for the top ~30% — screen 1's sky
@@ -838,7 +866,7 @@ a {
   left: -20%;
   right: -20%;
   top: 0;
-  height: 34%;
+  height: var(--cloud-sea-height);
   opacity: 0.9;
   background:
     radial-gradient(30% 65% at 4% 45%, var(--cloud) 0%, transparent 58%),
@@ -889,10 +917,12 @@ a {
 
 .screen-2-inner {
   position: relative;
+  /* Above the seam cloud band (.screen-2::before, z-index 0). */
+  z-index: 1;
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--cloud-sea-height) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
