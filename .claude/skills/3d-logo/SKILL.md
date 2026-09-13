@@ -14,7 +14,7 @@ A `SpinningLogo3D.tsx` component that:
 - Auto-removes dark/black backgrounds by converting to transparency at runtime
 - Extracts the logo's exact perimeter from the alpha channel
 - Builds a chrome rim that follows the logo's actual outline shape
-- Renders the logo readable on BOTH sides of the coin
+- Renders the logo on BOTH faces, with the back face's outline matching the rim exactly (seen from behind it's the mirror image, as on a real stamped coin)
 - Adds environment reflections for a premium chrome finish
 - Spins smoothly on the Y axis
 
@@ -248,9 +248,9 @@ function buildRim(outline: [number, number][], planeSize: number, thickness: num
 
 #### 2d. Coin assembly
 
-Two `PlaneGeometry` faces (front + back) with the transparent texture. The back face is rotated `[0, PI, 0]` — because PlaneGeometry has correct UV mapping by default, BOTH faces show the logo text readable (no mirroring).
+Two `PlaneGeometry` faces (front + back) with the transparent texture. The back face is the **same plane seen from behind**: same orientation as the front, pushed to `z = -half`, rendered with `side={BackSide}` (import `BackSide` from `three` alongside `FrontSide` and `DoubleSide`).
 
-**Critical**: Do NOT flip UV coordinates. PlaneGeometry UVs are already correct. The Y rotation on the back face handles the mirror naturally.
+**Critical**: Do NOT rotate the back face `[0, PI, 0]`, and do NOT flip its UVs. Either one makes the back logo "readable" but mirrors its silhouette, while the rim keeps the front outline, so on any asymmetric logo the rim visibly traces a reversed shape behind the face. A traced-outline coin is an extruded shape: seen from behind its outline *is* the mirror image, so the back face must show the logo mirrored to match the rim.
 
 ```tsx
 function Coin() {
@@ -276,7 +276,8 @@ function Coin() {
           depthWrite={false}
         />
       </mesh>
-      <mesh position={[0, 0, -half]} rotation={[0, Math.PI, 0]}>
+      {/* Same plane seen from behind: silhouette matches the rim exactly. */}
+      <mesh position={[0, 0, -half]}>
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
         <meshStandardMaterial
           map={colorTexture}
@@ -285,7 +286,7 @@ function Coin() {
           metalness={0.15}
           roughness={0.35}
           envMapIntensity={0.4}
-          side={FrontSide}
+          side={BackSide}
           transparent
           depthWrite={false}
         />
@@ -365,7 +366,7 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 ## Common pitfalls
 
 - **DO NOT use CircleGeometry** for the face — its UV mapping mirrors the texture. Always use PlaneGeometry.
-- **DO NOT flip UVs** — PlaneGeometry UVs are correct by default. Flipping causes mirrored text.
+- **DO NOT flip UVs or rotate the back face by PI** — both mirror the back silhouette against the rim. The back face is the front plane moved to `-half` with `side={BackSide}`.
 - **Suspense MUST be inside `<Canvas>`** — R3F's `useTexture` suspends within its own reconciler. An outer Suspense won't catch it and the component will flash/disappear.
 - **Use `DoubleSide` on the rim material** — the perimeter winding creates mixed normal directions. DoubleSide ensures all faces render regardless.
 - **Use `depthWrite={false}`** on the transparent face materials — prevents z-fighting between front and back faces during rotation.
