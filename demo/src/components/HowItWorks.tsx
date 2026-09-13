@@ -18,10 +18,10 @@ export function HowItWorks() {
     <section className="how" aria-labelledby="how-title">
       <div className="section-head">
         <span className="section-numeral" aria-hidden="true">
-          03
+          02
         </span>
         <div className="section-head-text">
-          <span className="dr-label">SEQUENCE // AG-SYS 03</span>
+          <span className="dr-label">SEQUENCE // AG-SYS 02</span>
           <h2 id="how-title" className="section-title">
             How it works
           </h2>
