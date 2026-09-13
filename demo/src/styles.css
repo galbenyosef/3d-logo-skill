@@ -70,6 +70,12 @@
   --space-7: 48px;
 
   --shadow-resting: 0 8px 30px -12px rgba(20, 22, 58, 0.55);
+
+  /* Reserved strip at the very bottom of screen 1 for .scroll-cue, which is
+     position:absolute (centred, every layout) and so no longer pushes the
+     dock/grid content up on its own — .screen-1-inner's own bottom padding
+     has to leave this much room instead, or a tall dock overlaps it. */
+  --scroll-cue-clearance: 54px;
 }
 
 * {
@@ -308,7 +314,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-4) var(--scroll-cue-clearance);
   max-width: 1280px;
   margin: 0 auto;
 }
@@ -655,9 +661,15 @@ a {
   color: var(--text);
 }
 
-/* Scroll cue at the foot of screen 1. */
+/* Scroll cue: centred at the very bottom of screen 1 on every layout — not
+   part of the copy/dock flow (it used to get lost drifting over the sky at
+   desktop widths), always sitting over the near bank's solid fill. */
 .scroll-cue {
-  align-self: center;
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  z-index: 1;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -675,9 +687,11 @@ a {
   color: var(--text);
 }
 
+/* Keeps the centring translateX(-50%) alongside the bob's translateY —
+   `transform` in a keyframe replaces the whole property, not just one axis. */
 @keyframes cue-bob {
-  from { transform: translateY(0); }
-  to { transform: translateY(4px); }
+  from { transform: translateX(-50%) translateY(0); }
+  to { transform: translateX(-50%) translateY(4px); }
 }
 
 /* ---------- Desktop: two-column screen 1 ---------- */
@@ -686,12 +700,12 @@ a {
   .screen-1-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-    grid-template-areas: 'copy stage' 'dock stage' 'cue stage';
+    grid-template-areas: 'copy stage' 'dock stage';
     align-content: center;
     align-items: start;
     column-gap: var(--space-7);
     row-gap: var(--space-4);
-    padding: var(--space-6) var(--space-6) var(--space-5);
+    padding: var(--space-6) var(--space-6) var(--scroll-cue-clearance);
   }
 
   .hero-copy {
@@ -714,12 +728,6 @@ a {
 
   .coin-canvas-wrap {
     width: min(100%, 640px, 72svh);
-  }
-
-  .scroll-cue {
-    grid-area: cue;
-    justify-self: start;
-    align-self: end;
   }
 }
 
@@ -779,7 +787,7 @@ a {
 @media (max-height: 760px) {
   .screen-1-inner {
     padding-top: var(--space-3);
-    padding-bottom: var(--space-3);
+    padding-bottom: var(--scroll-cue-clearance);
   }
 
   .coin-stage {

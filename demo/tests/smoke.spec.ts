@@ -107,7 +107,7 @@ test.describe('3D logo skill demo', () => {
 
     // The three numbered rows, in order.
     const rowTitles = page.locator('.install-row-title')
-    await expect(rowTitles).toHaveText(['Install', 'Ask your agent', 'Drop it in'])
+    await expect(rowTitles).toHaveText(['Add the skill', 'Ask your agent', 'Drop it in'])
 
     // Row 03's snippet is visible without switching any tab.
     await expect(page.getByText('<SpinningLogo3D logoPath="/logo.png" />')).toBeVisible()

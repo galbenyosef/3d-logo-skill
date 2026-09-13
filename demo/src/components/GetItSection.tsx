@@ -46,7 +46,7 @@ export function GetItSection() {
             <span className="install-row-number" aria-hidden="true">
               01
             </span>
-            <span className="install-row-title">Install</span>
+            <span className="install-row-title">Add the skill</span>
           </div>
           <div className="install-row-content">
             <div className="tablist" role="tablist" aria-label="Install method">
