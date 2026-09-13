@@ -93,3 +93,27 @@ test('screen 1 fits in exactly one viewport at every required size (STRATOS 100v
     expect(scrollY, `no auto-scroll at ${viewport.width}x${viewport.height}`).toBe(0)
   }
 })
+
+// Laptop-height desktop windows (issue #15): the phone-only svh caps once
+// applied here too and shrank the hero coin to ~160px at 1280x720. In the
+// two-column layout the coin owns a full column, so it should fill most
+// of the viewport height.
+test('the coin stays hero-sized on short desktop viewports', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto('/')
+  await page.waitForLoadState('networkidle')
+
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.waitForTimeout(300)
+    const wrap = await boxOf(page.locator('.coin-canvas-wrap'))
+    expect(
+      wrap.width,
+      `coin should be at least 60% of the viewport height at ${viewport.width}x${viewport.height}`,
+    ).toBeGreaterThanOrEqual(viewport.height * 0.6)
+  }
+})

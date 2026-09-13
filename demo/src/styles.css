@@ -789,7 +789,13 @@ a {
     padding-top: var(--space-3);
     padding-bottom: var(--scroll-cue-clearance);
   }
+}
 
+/* The svh coin caps only make sense when the coin is stacked between the
+   CTAs and the dock. At >=1024px the coin has its own grid column, and
+   applying them there shrank it to ~160px on every laptop-height window
+   (issue #15). */
+@media (max-width: 1023px) and (max-height: 760px) {
   .coin-stage {
     min-height: 22svh;
     max-height: 28svh;
@@ -804,7 +810,7 @@ a {
   }
 }
 
-@media (max-height: 620px) {
+@media (max-width: 1023px) and (max-height: 620px) {
   .coin-stage {
     min-height: 18svh;
     max-height: 22svh;
@@ -813,7 +819,9 @@ a {
   .coin-canvas-wrap {
     width: min(100%, 480px, 18svh);
   }
+}
 
+@media (max-height: 620px) {
   .hero-actions {
     gap: var(--space-2);
   }
