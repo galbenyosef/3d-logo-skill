@@ -171,6 +171,24 @@ export function removeBackgroundFromEdges(
 }
 
 /**
+ * Mutates `data` in place: any visible pixel (alpha > 0) that belongs to a
+ * component `dropSmallSpecks` would discard gets alpha 0. Background removal
+ * on a textured or noisy backdrop leaves isolated pixels just outside the
+ * colour tolerance; the rim already ignores them (extractPerimeter), but
+ * without this the colour texture still paints them as dust floating on
+ * the coin face (issue #29).
+ */
+export function clearDetachedSpecks(data: Uint8ClampedArray, width: number, height: number): void {
+  const n = width * height
+  const visible = new Uint8Array(n)
+  for (let i = 0; i < n; i++) visible[i] = data[i * 4 + 3] > 0 ? 1 : 0
+  const kept = dropSmallSpecks(visible, width, height)
+  for (let i = 0; i < n; i++) {
+    if (visible[i] && !kept[i]) data[i * 4 + 3] = 0
+  }
+}
+
+/**
  * Sobel-filter normal map generation, straight from SKILL.md 2a. Encodes the
  * brightness gradient as a tangent-space normal (RGB) so the coin faces read
  * as embossed rather than flat-printed.

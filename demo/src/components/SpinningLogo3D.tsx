@@ -7,6 +7,7 @@ import { buildRim } from '../lib/rimGeometry'
 import { computeCoinFaces } from '../lib/coinFaces'
 import {
   applyBrightnessThreshold,
+  clearDetachedSpecks,
   BG_TOLERANCE,
   detectSolidBackground,
   extractPerimeter,
@@ -60,8 +61,11 @@ function useLogoAssets(logoUrl: string): LogoAssets {
       } else {
         applyBrightnessThreshold(d, BG_THRESHOLD)
       }
-      ctx.putImageData(imageData, 0, 0)
     }
+    // Same speck rule the rim uses, applied to the colour texture too, so
+    // stray pixels left by a noisy background don't float on the face.
+    clearDetachedSpecks(d, width, height)
+    ctx.putImageData(imageData, 0, 0)
 
     const colorTexture = new CanvasTexture(canvas)
     colorTexture.colorSpace = SRGBColorSpace
