@@ -83,11 +83,11 @@ export default function App() {
     }
     setStatus({ kind: 'loading', message: `Processing "${file.name}"…` })
     try {
-      const { url, width, height } = await prepareUploadedLogo(file)
+      const { url, width, height, isVector } = await prepareUploadedLogo(file)
       if (uploadedObjectUrl.current) URL.revokeObjectURL(uploadedObjectUrl.current)
       uploadedObjectUrl.current = url
       setActiveLogo({ url, label: file.name, isUpload: true })
-      if (Math.max(width, height) < SHARP_LOGO_MIN_SIZE) {
+      if (!isVector && Math.max(width, height) < SHARP_LOGO_MIN_SIZE) {
         setStatus({
           kind: 'warning',
           message: `Spinning "${file.name}" — it's only ${width}×${height}, so it'll look soft. Use 256px or larger for a sharp coin.`,

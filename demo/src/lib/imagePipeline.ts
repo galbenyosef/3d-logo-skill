@@ -1,4 +1,4 @@
-import { computeDownscaleDimensions } from './downscale'
+import { computeRasterDimensions } from './downscale'
 
 /** Loads a File as an HTMLImageElement via a local object URL. Rejects on decode failure. */
 function readFileAsImage(file: File): Promise<HTMLImageElement> {
@@ -24,6 +24,8 @@ export interface UploadedLogo {
   width: number
   /** The ORIGINAL image's natural height, before any downscaling. */
   height: number
+  /** True for SVG: it was rasterized at full size, so its natural size says nothing about sharpness. */
+  isVector: boolean
 }
 
 /**
@@ -38,7 +40,8 @@ export async function prepareUploadedLogo(file: File, maxSize = 1024): Promise<U
   const img = await readFileAsImage(file)
   const naturalWidth = img.naturalWidth || img.width
   const naturalHeight = img.naturalHeight || img.height
-  const { width, height } = computeDownscaleDimensions(naturalWidth, naturalHeight, maxSize)
+  const isVector = file.type === 'image/svg+xml'
+  const { width, height } = computeRasterDimensions(naturalWidth, naturalHeight, maxSize, isVector)
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
@@ -51,7 +54,7 @@ export async function prepareUploadedLogo(file: File, maxSize = 1024): Promise<U
         reject(new Error('Could not process that image.'))
         return
       }
-      resolve({ url: URL.createObjectURL(blob), width: naturalWidth, height: naturalHeight })
+      resolve({ url: URL.createObjectURL(blob), width: naturalWidth, height: naturalHeight, isVector })
     }, 'image/png')
   })
 }
