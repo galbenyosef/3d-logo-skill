@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  clearDetachedSpecks,
   applyBrightnessThreshold,
   detectSolidBackground,
   dropSmallSpecks,
@@ -442,5 +443,39 @@ describe('pickRimPalette', () => {
 
   it('falls back to neutral when the image is fully transparent', () => {
     expect(pickRimPalette(new Uint8ClampedArray(4 * 4 * 4))).toEqual({ color: '#c0c0c0', emissive: '#888888' })
+  })
+})
+
+describe('clearDetachedSpecks', () => {
+  // 100x100 transparent canvas; paint opaque squares by bounding box.
+  function canvasWith(rects: Array<[number, number, number, number]>): Uint8ClampedArray {
+    const w = 100
+    const data = new Uint8ClampedArray(w * w * 4)
+    for (const [x0, y0, x1, y1] of rects) {
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data[(y * w + x) * 4 + 3] = 255
+    }
+    return data
+  }
+  const alphaAt = (d: Uint8ClampedArray, x: number, y: number) => d[(y * 100 + x) * 4 + 3]
+
+  it('clears a lone speck but keeps the logo body', () => {
+    const d = canvasWith([[20, 20, 80, 80], [5, 5, 6, 6]])
+    clearDetachedSpecks(d, 100, 100)
+    expect(alphaAt(d, 50, 50)).toBe(255)
+    expect(alphaAt(d, 5, 5)).toBe(0)
+  })
+
+  it('keeps a real secondary piece of a multi-part logo', () => {
+    // 60x60 body (3600px) + 10x10 piece (100px, ~2.8% of the body).
+    const d = canvasWith([[20, 20, 80, 80], [85, 85, 95, 95]])
+    clearDetachedSpecks(d, 100, 100)
+    expect(alphaAt(d, 90, 90)).toBe(255)
+  })
+
+  it('treats faint partial-alpha dust as a speck too', () => {
+    const d = canvasWith([[20, 20, 80, 80]])
+    d[(3 * 100 + 3) * 4 + 3] = 40
+    clearDetachedSpecks(d, 100, 100)
+    expect(alphaAt(d, 3, 3)).toBe(0)
   })
 })
