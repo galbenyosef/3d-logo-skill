@@ -20,6 +20,73 @@ export function applyBrightnessThreshold(data: Uint8ClampedArray, threshold: num
   }
 }
 
+export interface RGB {
+  r: number
+  g: number
+  b: number
+}
+
+/** Max per-channel difference for a pixel to be considered "the same colour" as the detected background. */
+export const BG_TOLERANCE = 24
+
+/** Fraction of border pixels that must match the median border colour for it to count as a solid background. */
+export const BORDER_MATCH_RATIO = 0.85
+
+function pixelAt(data: Uint8ClampedArray, width: number, x: number, y: number): RGB {
+  const i = (y * width + x) * 4
+  return { r: data[i], g: data[i + 1], b: data[i + 2] }
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.floor(sorted.length / 2)]
+}
+
+function channelMaxDiff(a: RGB, b: RGB): number {
+  return Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b))
+}
+
+/**
+ * Looks at every pixel in the image's 1px border frame and takes the
+ * per-channel median colour. If at least `matchRatio` of those border pixels
+ * are within `tolerance` (max per-channel difference) of that median, the
+ * image is treated as having a solid flat background and that colour is
+ * returned — otherwise (a photo, a gradient, a busy/textured edge) `null` is
+ * returned and the caller should fall back to the dark-threshold heuristic.
+ */
+export function detectSolidBackground(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  tolerance = BG_TOLERANCE,
+  matchRatio = BORDER_MATCH_RATIO,
+): RGB | null {
+  if (width < 2 || height < 2) return null
+  const border: RGB[] = []
+  for (let x = 0; x < width; x++) {
+    border.push(pixelAt(data, width, x, 0))
+    border.push(pixelAt(data, width, x, height - 1))
+  }
+  for (let y = 1; y < height - 1; y++) {
+    border.push(pixelAt(data, width, 0, y))
+    border.push(pixelAt(data, width, width - 1, y))
+  }
+  if (border.length === 0) return null
+
+  const bg: RGB = {
+    r: median(border.map((p) => p.r)),
+    g: median(border.map((p) => p.g)),
+    b: median(border.map((p) => p.b)),
+  }
+
+  let matches = 0
+  for (const p of border) {
+    if (channelMaxDiff(p, bg) <= tolerance) matches++
+  }
+  if (matches / border.length < matchRatio) return null
+  return bg
+}
+
 /**
  * Sobel-filter normal map generation, straight from SKILL.md 2a. Encodes the
  * brightness gradient as a tangent-space normal (RGB) so the coin faces read
