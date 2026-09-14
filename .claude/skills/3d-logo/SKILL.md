@@ -505,7 +505,9 @@ export function SpinningLogo3D({ size = 540 }: { size?: number }) {
     <div style={{ width: size, height: size }} className="mx-auto">
       <Canvas
         camera={{ position: [0, 0, 7], fov: 40 }}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+        // NeutralToneMapping (import from `three`): R3F's default ACES Filmic
+        // desaturates bright base colours and washes logos toward pastel.
+        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true, toneMapping: NeutralToneMapping }}
         dpr={[1, 2]}
       >
         <ambientLight intensity={0.8} />
@@ -565,6 +567,7 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 - **Use `DoubleSide` on the rim material** — the perimeter winding creates mixed normal directions. DoubleSide ensures all faces render regardless.
 - **Use `depthWrite={false}`** on the transparent face materials — prevents z-fighting between front and back faces during rotation.
 - **Check the actual file format** — `.png` files are sometimes JPEG internally. JPEG has no alpha, so transparency must always be generated from brightness.
+- **Use `NeutralToneMapping` on the Canvas** — R3F defaults to ACES Filmic, which desaturates bright base colours: a vivid green logo comes out sage, cyan comes out mint. Khronos PBR Neutral keeps the logo's own colours and still lets the chrome rim highlight.
 - **Normal maps MUST use `LinearSRGBColorSpace`** — setting `SRGBColorSpace` on a normal map gamma-corrects the direction vectors, producing incorrect lighting and a flat appearance.
 - **`preserveDrawingBuffer: true` enables screenshots** — without it, `toDataURL()` returns blank frames. Can be set to `false` for slightly better GPU performance if screenshots aren't needed.
 - **DO NOT test `alpha > 0` in `extractPerimeter`** — low-alpha compression/dithering noise in "transparent" regions will pass that test and survive as its own stray component. Threshold at a real opacity cutoff and drop tiny detached specks (not just "keep the largest component" — a multi-part logo like an icon plus a separate wordmark has more than one real piece, and all of them must survive).
