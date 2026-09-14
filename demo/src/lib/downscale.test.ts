@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeDownscaleDimensions } from './downscale'
+import { computeDownscaleDimensions, computeRasterDimensions } from './downscale'
 
 describe('computeDownscaleDimensions', () => {
   it('leaves images at or under the 1024px budget untouched', () => {
@@ -17,5 +17,19 @@ describe('computeDownscaleDimensions', () => {
 
   it('respects a custom max size', () => {
     expect(computeDownscaleDimensions(4000, 2000, 512)).toEqual({ width: 512, height: 256 })
+  })
+})
+
+describe('computeRasterDimensions', () => {
+  it('scales a small vector up to the max size, keeping aspect', () => {
+    expect(computeRasterDimensions(150, 75, 1024, true)).toEqual({ width: 1024, height: 512 })
+  })
+
+  it('scales a large vector down to the max size', () => {
+    expect(computeRasterDimensions(4000, 2000, 1024, true)).toEqual({ width: 1024, height: 512 })
+  })
+
+  it('never upscales raster images', () => {
+    expect(computeRasterDimensions(16, 16, 1024, false)).toEqual({ width: 16, height: 16 })
   })
 })
