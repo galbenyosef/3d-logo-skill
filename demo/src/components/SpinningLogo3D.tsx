@@ -1,7 +1,7 @@
 import { Suspense, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, useTexture } from '@react-three/drei'
-import { BufferGeometry, CanvasTexture, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
+import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
 import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
 import { computeCoinFaces } from '../lib/coinFaces'
@@ -172,7 +172,17 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1 }: Spinn
   return (
     <Canvas
       camera={{ position: [0, 0, 7], fov: 40 }}
-      gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+      // Khronos PBR Neutral instead of R3F's default ACES Filmic: ACES
+      // desaturates bright base colours, which washed every logo toward
+      // pastel (cyan -> mint, green -> sage). Neutral is built for base-colour
+      // fidelity and keeps the chrome rim's highlights (issue #31).
+      gl={{
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: true,
+        toneMapping: NeutralToneMapping,
+      }}
       dpr={[1, 2]}
     >
       <ambientLight intensity={0.8} />
