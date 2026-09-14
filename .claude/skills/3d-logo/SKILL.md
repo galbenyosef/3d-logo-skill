@@ -1,6 +1,6 @@
 ---
 name: 3d-logo
-description: Create a 3D spinning coin/medal effect from any logo image using React Three Fiber. Auto-detects the logo's outline, removes dark backgrounds, builds a chrome-rimmed coin that follows the exact logo shape, and adds environment reflections. Use when the user wants a 3D logo, spinning logo, rotating logo, coin effect, medal effect, logo animation, or mentions making a logo "3D" or "spin." Also trigger when user says "3d-logo", "spinning coin", "logo coin", "3D badge", or wants to turn a flat image into a premium 3D rotating element.
+description: Create a 3D spinning coin/medal effect from any logo image using React Three Fiber. Auto-detects the logo's outline, removes solid backgrounds (white, black or any flat colour), builds a chrome-rimmed coin that follows the exact logo shape, and adds environment reflections. Use when the user wants a 3D logo, spinning logo, rotating logo, coin effect, medal effect, logo animation, or mentions making a logo "3D" or "spin." Also trigger when user says "3d-logo", "spinning coin", "logo coin", "3D badge", or wants to turn a flat image into a premium 3D rotating element.
 ---
 
 # 3D Logo Spinner
@@ -11,7 +11,7 @@ Generate a self-contained React component that renders any logo as a premium 3D 
 
 A `SpinningLogo3D.tsx` component that:
 - Takes any logo image (PNG, JPG, SVG rasterized) and renders it as a 3D coin
-- Auto-removes dark/black backgrounds by converting to transparency at runtime
+- Auto-removes solid backgrounds (white, black or any flat colour) by converting to transparency at runtime
 - Extracts the logo's exact perimeter from the alpha channel
 - Builds a chrome rim that follows the logo's actual outline shape
 - Renders the logo on BOTH faces, with the back face's outline matching the rim exactly (seen from behind it's the mirror image, as on a real stamped coin)
@@ -44,9 +44,75 @@ Create `SpinningLogo3D.tsx` using this architecture:
 
 #### 2a. Dynamic transparency generation and normal map
 
-The logo image likely has a dark/black background with no alpha channel. Convert dark pixels to transparent at runtime using an offscreen canvas, and generate a normal map via Sobel filter for embossed depth on the coin faces. Requires `Vector2` and `LinearSRGBColorSpace` from Three.js in addition to the other imports:
+The logo image likely has a solid background — white, black, or any other flat colour — with no alpha channel. Detect that background by sampling the image's 1px border and taking the median colour; if enough border pixels agree, remove it with a **contiguous** flood fill seeded from the border, so only the background region actually connected to the edge clears — an enclosed same-colour detail inside the logo (the white of an eye, the counter of an "O") is never touched, because the fill can only reach it through connected matching pixels and there's no path in from the border. A border that doesn't agree on one colour (a photo, a gradient, a busy edge) falls back to the old global dark-brightness threshold. Also generate a normal map via Sobel filter for embossed depth on the coin faces. Requires `Vector2` and `LinearSRGBColorSpace` from Three.js in addition to the other imports:
 
 ```tsx
+const BG_TOLERANCE = 24 // max per-channel diff to count as "the same colour" as the background
+const BORDER_MATCH_RATIO = 0.85 // fraction of border pixels that must agree for it to count as solid
+interface RGB { r: number; g: number; b: number }
+
+// Median colour of the image's border; null if the border doesn't agree
+// (a photo/gradient/busy edge) — caller falls back to the brightness threshold.
+function detectSolidBackground(data: Uint8ClampedArray, width: number, height: number): RGB | null {
+  const pixelAt = (x: number, y: number): RGB => {
+    const i = (y * width + x) * 4
+    return { r: data[i], g: data[i + 1], b: data[i + 2] }
+  }
+  const border: RGB[] = []
+  for (let x = 0; x < width; x++) { border.push(pixelAt(x, 0)); border.push(pixelAt(x, height - 1)) }
+  for (let y = 1; y < height - 1; y++) { border.push(pixelAt(0, y)); border.push(pixelAt(width - 1, y)) }
+  const median = (vals: number[]) => [...vals].sort((a, b) => a - b)[Math.floor(vals.length / 2)]
+  const bg: RGB = { r: median(border.map((p) => p.r)), g: median(border.map((p) => p.g)), b: median(border.map((p) => p.b)) }
+  const diff = (p: RGB) => Math.max(Math.abs(p.r - bg.r), Math.abs(p.g - bg.g), Math.abs(p.b - bg.b))
+  const matches = border.filter((p) => diff(p) <= BG_TOLERANCE).length
+  return matches / border.length >= BORDER_MATCH_RATIO ? bg : null
+}
+
+// Iterative (explicit stack, never recursive — must handle 1024x1024 fast)
+// 4-connected flood fill seeded from every border pixel matching `bg`. Only
+// the background CONTIGUOUS with the border is cleared. Near-match pixels
+// next to the cleared region get their alpha scaled down for a soft,
+// anti-aliased edge instead of a hard white/colour halo.
+function removeBackgroundFromEdges(
+  data: Uint8ClampedArray, width: number, height: number, bg: RGB, tolerance = BG_TOLERANCE,
+): void {
+  const n = width * height
+  const removed = new Uint8Array(n)
+  const visited = new Uint8Array(n)
+  const stack = new Int32Array(n)
+  let stackLen = 0
+  const dist = (i: number) => {
+    const o = i * 4
+    return Math.max(Math.abs(data[o] - bg.r), Math.abs(data[o + 1] - bg.g), Math.abs(data[o + 2] - bg.b))
+  }
+  const visit = (i: number) => {
+    if (visited[i]) return
+    visited[i] = 1
+    if (dist(i) <= tolerance) { removed[i] = 1; stack[stackLen++] = i }
+  }
+  for (let x = 0; x < width; x++) { visit(x); visit((height - 1) * width + x) }
+  for (let y = 0; y < height; y++) { visit(y * width); visit(y * width + width - 1) }
+  while (stackLen > 0) {
+    const i = stack[--stackLen]
+    const x = i % width, y = (i / width) | 0
+    if (x > 0) visit(i - 1)
+    if (x < width - 1) visit(i + 1)
+    if (y > 0) visit(i - width)
+    if (y < height - 1) visit(i + width)
+  }
+  for (let i = 0; i < n; i++) {
+    const o = i * 4
+    if (removed[i]) { data[o + 3] = 0; continue }
+    const x = i % width, y = (i / width) | 0
+    const nearRemoved =
+      (x > 0 && removed[i - 1] === 1) || (x < width - 1 && removed[i + 1] === 1) ||
+      (y > 0 && removed[i - width] === 1) || (y < height - 1 && removed[i + width] === 1)
+    if (!nearRemoved) continue
+    const d = dist(i)
+    if (d > tolerance && d < 2 * tolerance) data[o + 3] = Math.round(data[o + 3] * ((d - tolerance) / tolerance))
+  }
+}
+
 function useLogoTextures(logoPath: string, threshold = 18) {
   const srcTexture = useTexture(logoPath)
   return useMemo(() => {
@@ -58,9 +124,16 @@ function useLogoTextures(logoPath: string, threshold = 18) {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const d = imageData.data
-    for (let i = 0; i < d.length; i += 4) {
-      const brightness = (d[i] + d[i + 1] + d[i + 2]) / 3
-      if (brightness < threshold) d[i + 3] = 0
+    const bg = detectSolidBackground(d, canvas.width, canvas.height)
+    if (bg) {
+      removeBackgroundFromEdges(d, canvas.width, canvas.height, bg)
+    } else {
+      // No solid border found (photo/gradient/busy edge) — fall back to the
+      // old global dark-brightness threshold.
+      for (let i = 0; i < d.length; i += 4) {
+        const brightness = (d[i] + d[i + 1] + d[i + 2]) / 3
+        if (brightness < threshold) d[i + 3] = 0
+      }
     }
     ctx.putImageData(imageData, 0, 0)
     const colorTexture = new CanvasTexture(canvas)
@@ -101,7 +174,9 @@ function useLogoTextures(logoPath: string, threshold = 18) {
 }
 ```
 
-If the logo already has a transparent background (actual PNG with alpha), skip the brightness threshold and just use the existing alpha. You can detect this: if `file` reports "PNG image data" (not JPEG), the image may have native transparency. Still apply the same hook but check alpha instead of brightness.
+**Why contiguous-only:** the flood fill only clears background pixels reachable from the border through 4-connected matching pixels. An enclosed same-colour region inside the logo — the white of an eye, the counter of an "O" — has no connected path back to the border, so it's never visited and stays opaque. This is also why a black background no longer punches holes in dark details inside the logo: the old global brightness threshold cleared every dark pixel regardless of position, while the flood fill only clears the connected background.
+
+If the logo already has a transparent background (actual PNG with alpha), skip both the flood fill and the brightness threshold and just use the existing alpha. You can detect this: if `file` reports "PNG image data" (not JPEG), the image may have native transparency. Still apply the same hook but check alpha instead of brightness.
 
 #### 2b. Perimeter extraction
 
@@ -454,7 +529,9 @@ Place these at the top of the file so the user can easily adjust:
 | `PLANE_SIZE` | 4.8 | Size of the logo face in 3D units |
 | `THICKNESS` | 0.45 | Coin edge thickness |
 | `SPIN_SPEED` | 0.35 | Rotation speed (radians/sec) |
-| `BG_THRESHOLD` | 18 | Brightness cutoff for background removal (0-255) |
+| `BG_THRESHOLD` | 18 | Brightness cutoff for the dark-background fallback (0-255), used only when no solid border is detected |
+| `BG_TOLERANCE` | 24 | Max per-channel colour difference for a pixel to count as background, in both border detection and the flood fill (0-255) |
+| `BORDER_MATCH_RATIO` | 0.85 | Fraction of border pixels that must agree on a colour for it to count as a solid background |
 | `EMBOSS_STRENGTH` | 1.5 | Normal map intensity (0 = flat, 3+ = deep emboss) |
 
 ### Step 5: Integration
