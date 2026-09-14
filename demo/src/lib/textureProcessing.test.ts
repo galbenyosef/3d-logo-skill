@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyBrightnessThreshold,
+  detectSolidBackground,
   dropSmallSpecks,
   extractPerimeter,
   generateNormalMapData,
   hasNativeAlpha,
   pickRimPalette,
+  removeBackgroundFromEdges,
+  type RGB,
 } from './textureProcessing'
 
 function makeFlatImage(width: number, height: number, rgba: [number, number, number, number]): Uint8ClampedArray {
@@ -40,6 +43,145 @@ describe('applyBrightnessThreshold', () => {
     applyBrightnessThreshold(data, 18)
     expect(data[3]).toBe(0)
     expect(data[7]).toBe(255)
+  })
+})
+
+/** Sets one pixel's RGBA in place. */
+function setPixel(data: Uint8ClampedArray, width: number, x: number, y: number, rgba: [number, number, number, number]): void {
+  const i = (y * width + x) * 4
+  data[i] = rgba[0]
+  data[i + 1] = rgba[1]
+  data[i + 2] = rgba[2]
+  data[i + 3] = rgba[3]
+}
+
+/** Paints the 1px border frame a solid colour. */
+function fillBorder(data: Uint8ClampedArray, width: number, height: number, rgba: [number, number, number, number]): void {
+  for (let x = 0; x < width; x++) {
+    setPixel(data, width, x, 0, rgba)
+    setPixel(data, width, x, height - 1, rgba)
+  }
+  for (let y = 0; y < height; y++) {
+    setPixel(data, width, 0, y, rgba)
+    setPixel(data, width, width - 1, y, rgba)
+  }
+}
+
+describe('detectSolidBackground', () => {
+  it('detects a white border', () => {
+    const width = 20
+    const height = 20
+    const data = makeFlatImage(width, height, [10, 10, 10, 255])
+    fillBorder(data, width, height, [255, 255, 255, 255])
+    expect(detectSolidBackground(data, width, height)).toEqual<RGB>({ r: 255, g: 255, b: 255 })
+  })
+
+  it('detects a black border', () => {
+    const width = 20
+    const height = 20
+    const data = makeFlatImage(width, height, [230, 230, 230, 255])
+    fillBorder(data, width, height, [0, 0, 0, 255])
+    expect(detectSolidBackground(data, width, height)).toEqual<RGB>({ r: 0, g: 0, b: 0 })
+  })
+
+  it('returns null for a noisy/busy border', () => {
+    const width = 20
+    const height = 20
+    const data = makeFlatImage(width, height, [128, 128, 128, 255])
+    // Alternate stark black/white around the whole border frame — no single
+    // colour covers anywhere near BORDER_MATCH_RATIO of it.
+    for (let x = 0; x < width; x++) {
+      const rgba: [number, number, number, number] = x % 2 === 0 ? [0, 0, 0, 255] : [255, 255, 255, 255]
+      setPixel(data, width, x, 0, rgba)
+      setPixel(data, width, x, height - 1, rgba)
+    }
+    for (let y = 0; y < height; y++) {
+      const rgba: [number, number, number, number] = y % 2 === 0 ? [0, 0, 0, 255] : [255, 255, 255, 255]
+      setPixel(data, width, 0, y, rgba)
+      setPixel(data, width, width - 1, y, rgba)
+    }
+    expect(detectSolidBackground(data, width, height)).toBeNull()
+  })
+
+  it('returns null for a smooth gradient border', () => {
+    const width = 30
+    const height = 30
+    const data = makeFlatImage(width, height, [200, 200, 200, 255])
+    for (let x = 0; x < width; x++) {
+      const v = Math.round((x / (width - 1)) * 255)
+      setPixel(data, width, x, 0, [v, v, v, 255])
+      setPixel(data, width, x, height - 1, [v, v, v, 255])
+    }
+    for (let y = 0; y < height; y++) {
+      const v = Math.round((y / (height - 1)) * 255)
+      setPixel(data, width, 0, y, [v, v, v, 255])
+      setPixel(data, width, width - 1, y, [v, v, v, 255])
+    }
+    expect(detectSolidBackground(data, width, height)).toBeNull()
+  })
+})
+
+describe('removeBackgroundFromEdges', () => {
+  it('removes the border-connected background but keeps an enclosed same-colour hole opaque', () => {
+    const width = 20
+    const height = 20
+    const bg: RGB = { r: 255, g: 255, b: 255 }
+    const data = makeFlatImage(width, height, [255, 255, 255, 255])
+    // A green "logo" ring with an enclosed white hole in the middle — the
+    // hole is the same colour as the background but not connected to it.
+    for (let y = 6; y < 15; y++) {
+      for (let x = 6; x < 15; x++) {
+        setPixel(data, width, x, y, [20, 150, 20, 255])
+      }
+    }
+    for (let y = 9; y < 12; y++) {
+      for (let x = 9; x < 12; x++) {
+        setPixel(data, width, x, y, [255, 255, 255, 255])
+      }
+    }
+
+    removeBackgroundFromEdges(data, width, height, bg, 24)
+
+    // Outer background is gone.
+    expect(data[(0 * width + 0) * 4 + 3]).toBe(0)
+    expect(data[(19 * width + 19) * 4 + 3]).toBe(0)
+    // The green ring survives.
+    expect(data[(10 * width + 6) * 4 + 3]).toBe(255)
+    // The enclosed white hole — never touched by the flood fill — stays opaque.
+    expect(data[(10 * width + 10) * 4 + 3]).toBe(255)
+  })
+
+  it('gives a near-match boundary pixel partial alpha instead of a hard edge', () => {
+    const width = 5
+    const height = 3
+    const bg: RGB = { r: 255, g: 255, b: 255 }
+    const data = makeFlatImage(width, height, [255, 255, 255, 255])
+    // The lone interior pixel is a near-white shade: colour distance 30,
+    // between tolerance (24) and 2x tolerance (48).
+    setPixel(data, width, 2, 1, [225, 255, 255, 255])
+
+    removeBackgroundFromEdges(data, width, height, bg, 24)
+
+    const alpha = data[(1 * width + 2) * 4 + 3]
+    expect(alpha).toBeGreaterThan(0)
+    expect(alpha).toBeLessThan(255)
+    expect(alpha).toBe(Math.round(255 * ((30 - 24) / 24)))
+  })
+
+  it('runs on a 1024x1024 all-background image without a stack overflow and in under 300ms', () => {
+    const width = 1024
+    const height = 1024
+    const bg: RGB = { r: 10, g: 10, b: 10 }
+    const data = makeFlatImage(width, height, [10, 10, 10, 255])
+
+    const start = performance.now()
+    expect(() => removeBackgroundFromEdges(data, width, height, bg, 24)).not.toThrow()
+    const elapsedMs = performance.now() - start
+
+    expect(data[(512 * width + 512) * 4 + 3]).toBe(0)
+    // eslint-disable-next-line no-console
+    console.log(`removeBackgroundFromEdges(1024x1024): ${elapsedMs.toFixed(2)}ms`)
+    expect(elapsedMs).toBeLessThan(300)
   })
 })
 
