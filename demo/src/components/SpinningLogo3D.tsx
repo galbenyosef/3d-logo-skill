@@ -7,10 +7,13 @@ import { buildRim } from '../lib/rimGeometry'
 import { computeCoinFaces } from '../lib/coinFaces'
 import {
   applyBrightnessThreshold,
+  BG_TOLERANCE,
+  detectSolidBackground,
   extractPerimeter,
   generateNormalMapData,
   hasNativeAlpha,
   pickRimPalette,
+  removeBackgroundFromEdges,
 } from '../lib/textureProcessing'
 import type { EnvPreset } from '../lib/envPresets'
 
@@ -44,10 +47,19 @@ function useLogoAssets(logoUrl: string): LogoAssets {
     const imageData = ctx.getImageData(0, 0, width, height)
     const d = imageData.data
 
-    // Only threshold-remove a dark background when the source has no real
-    // alpha of its own (SKILL.md 2a: "if already transparent, skip").
+    // Only remove a background when the source has no real alpha of its own
+    // (SKILL.md 2a: "if already transparent, skip"). A solid flat border
+    // (white, black, or any other flat colour) is removed with a contiguous
+    // flood fill so enclosed same-colour details inside the logo survive;
+    // only a photo/gradient/busy edge — where detectSolidBackground finds
+    // nothing — falls back to the old global dark-brightness threshold.
     if (!hasNativeAlpha(d)) {
-      applyBrightnessThreshold(d, BG_THRESHOLD)
+      const bg = detectSolidBackground(d, width, height)
+      if (bg) {
+        removeBackgroundFromEdges(d, width, height, bg, BG_TOLERANCE)
+      } else {
+        applyBrightnessThreshold(d, BG_THRESHOLD)
+      }
       ctx.putImageData(imageData, 0, 0)
     }
 

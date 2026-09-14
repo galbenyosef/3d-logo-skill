@@ -20,6 +20,156 @@ export function applyBrightnessThreshold(data: Uint8ClampedArray, threshold: num
   }
 }
 
+export interface RGB {
+  r: number
+  g: number
+  b: number
+}
+
+/** Max per-channel difference for a pixel to be considered "the same colour" as the detected background. */
+export const BG_TOLERANCE = 24
+
+/** Fraction of border pixels that must match the median border colour for it to count as a solid background. */
+export const BORDER_MATCH_RATIO = 0.85
+
+function pixelAt(data: Uint8ClampedArray, width: number, x: number, y: number): RGB {
+  const i = (y * width + x) * 4
+  return { r: data[i], g: data[i + 1], b: data[i + 2] }
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.floor(sorted.length / 2)]
+}
+
+function channelMaxDiff(a: RGB, b: RGB): number {
+  return Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b))
+}
+
+/**
+ * Looks at every pixel in the image's 1px border frame and takes the
+ * per-channel median colour. If at least `matchRatio` of those border pixels
+ * are within `tolerance` (max per-channel difference) of that median, the
+ * image is treated as having a solid flat background and that colour is
+ * returned — otherwise (a photo, a gradient, a busy/textured edge) `null` is
+ * returned and the caller should fall back to the dark-threshold heuristic.
+ */
+export function detectSolidBackground(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  tolerance = BG_TOLERANCE,
+  matchRatio = BORDER_MATCH_RATIO,
+): RGB | null {
+  if (width < 2 || height < 2) return null
+  const border: RGB[] = []
+  for (let x = 0; x < width; x++) {
+    border.push(pixelAt(data, width, x, 0))
+    border.push(pixelAt(data, width, x, height - 1))
+  }
+  for (let y = 1; y < height - 1; y++) {
+    border.push(pixelAt(data, width, 0, y))
+    border.push(pixelAt(data, width, width - 1, y))
+  }
+  if (border.length === 0) return null
+
+  const bg: RGB = {
+    r: median(border.map((p) => p.r)),
+    g: median(border.map((p) => p.g)),
+    b: median(border.map((p) => p.b)),
+  }
+
+  let matches = 0
+  for (const p of border) {
+    if (channelMaxDiff(p, bg) <= tolerance) matches++
+  }
+  if (matches / border.length < matchRatio) return null
+  return bg
+}
+
+/**
+ * Iterative (explicit-stack, never recursive — this has to handle a
+ * 1024x1024 image without blowing the call stack) 4-connected flood fill
+ * seeded from every border pixel matching `bg` within `tolerance`. Only the
+ * background region CONTIGUOUS with the border is made transparent, so an
+ * enclosed same-colour detail (the white of an eye, the counter of an "O")
+ * that isn't connected to the border survives untouched.
+ *
+ * Pixels adjacent to the removed region whose colour distance from `bg` is
+ * between `tolerance` and `2 * tolerance` (near-matches that missed the cut)
+ * get their alpha scaled down proportionally, so the boundary anti-aliases
+ * instead of leaving a hard, haloed edge.
+ */
+export function removeBackgroundFromEdges(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  bg: RGB,
+  tolerance = BG_TOLERANCE,
+): void {
+  const n = width * height
+  if (n === 0) return
+  const removed = new Uint8Array(n)
+  const visited = new Uint8Array(n)
+  const stack = new Int32Array(n)
+  let stackLen = 0
+
+  const colorDist = (idx: number): number => {
+    const off = idx * 4
+    return Math.max(Math.abs(data[off] - bg.r), Math.abs(data[off + 1] - bg.g), Math.abs(data[off + 2] - bg.b))
+  }
+
+  const visit = (idx: number): void => {
+    if (visited[idx]) return
+    visited[idx] = 1
+    if (colorDist(idx) <= tolerance) {
+      removed[idx] = 1
+      stack[stackLen++] = idx
+    }
+  }
+
+  for (let x = 0; x < width; x++) {
+    visit(x)
+    visit((height - 1) * width + x)
+  }
+  for (let y = 0; y < height; y++) {
+    visit(y * width)
+    visit(y * width + width - 1)
+  }
+
+  while (stackLen > 0) {
+    const idx = stack[--stackLen]
+    const x = idx % width
+    const y = (idx / width) | 0
+    if (x > 0) visit(idx - 1)
+    if (x < width - 1) visit(idx + 1)
+    if (y > 0) visit(idx - width)
+    if (y < height - 1) visit(idx + width)
+  }
+
+  for (let i = 0; i < n; i++) {
+    const off = i * 4
+    if (removed[i]) {
+      data[off + 3] = 0
+      continue
+    }
+    const x = i % width
+    const y = (i / width) | 0
+    const adjacentToRemoved =
+      (x > 0 && removed[i - 1] === 1) ||
+      (x < width - 1 && removed[i + 1] === 1) ||
+      (y > 0 && removed[i - width] === 1) ||
+      (y < height - 1 && removed[i + width] === 1)
+    if (!adjacentToRemoved) continue
+
+    const dist = colorDist(i)
+    if (dist > tolerance && dist < 2 * tolerance) {
+      const scale = (dist - tolerance) / tolerance
+      data[off + 3] = Math.round(data[off + 3] * scale)
+    }
+  }
+}
+
 /**
  * Sobel-filter normal map generation, straight from SKILL.md 2a. Encodes the
  * brightness gradient as a tangent-space normal (RGB) so the coin faces read

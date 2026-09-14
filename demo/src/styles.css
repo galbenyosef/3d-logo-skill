@@ -624,6 +624,10 @@ a {
   color: var(--text);
 }
 
+.status[data-kind='warning'] {
+  color: var(--accent);
+}
+
 /* Scroll cue: centred at the very bottom of screen 1 on every layout — not
    part of the copy/dock flow (it used to get lost drifting over the sky at
    desktop widths), always sitting over the near bank's solid fill. */

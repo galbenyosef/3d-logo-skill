@@ -61,6 +61,26 @@ test.describe('3D logo skill demo', () => {
     expect(consoleErrors).toEqual([])
   })
 
+  test('a tiny upload shows a visible soft-image warning', async ({ page }) => {
+    const consoleErrors: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text())
+    })
+    page.on('pageerror', (err) => consoleErrors.push(String(err)))
+
+    await page.goto('/')
+
+    const status = page.getByRole('status')
+    await page.setInputFiles('#logo-upload', 'tests/fixtures/tiny-16.png')
+    await expect(status).toContainText('16×16', { timeout: 10_000 })
+    await expect(status).toContainText("it'll look soft")
+    await expect(status).toHaveAttribute('data-kind', 'warning')
+    // The default 'ready' status is visually hidden, but a warning must not be.
+    await expect(status).toBeVisible()
+
+    expect(consoleErrors).toEqual([])
+  })
+
   test('hero renders the h1 and a working "Try your logo" CTA', async ({ page }) => {
     const consoleErrors: string[] = []
     page.on('console', (msg) => {
