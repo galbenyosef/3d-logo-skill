@@ -11,7 +11,10 @@ import { PRESET_LOGOS, presetUrl } from './lib/presetLogos'
 
 const REPO_URL = 'https://github.com/hasuwini77/3d-logo-skill'
 
-type StatusKind = 'idle' | 'loading' | 'ready' | 'error'
+type StatusKind = 'idle' | 'loading' | 'ready' | 'warning' | 'error'
+
+/** Below this on the long side, an upscaled coin face reads as visibly soft. */
+const SHARP_LOGO_MIN_SIZE = 256
 
 interface Status {
   kind: StatusKind
@@ -80,11 +83,18 @@ export default function App() {
     }
     setStatus({ kind: 'loading', message: `Processing "${file.name}"…` })
     try {
-      const url = await prepareUploadedLogo(file)
+      const { url, width, height } = await prepareUploadedLogo(file)
       if (uploadedObjectUrl.current) URL.revokeObjectURL(uploadedObjectUrl.current)
       uploadedObjectUrl.current = url
       setActiveLogo({ url, label: file.name, isUpload: true })
-      setStatus({ kind: 'ready', message: `Spinning "${file.name}" — it never left your device.` })
+      if (Math.max(width, height) < SHARP_LOGO_MIN_SIZE) {
+        setStatus({
+          kind: 'warning',
+          message: `Spinning "${file.name}" — it's only ${width}×${height}, so it'll look soft. Use 256px or larger for a sharp coin.`,
+        })
+      } else {
+        setStatus({ kind: 'ready', message: `Spinning "${file.name}" — it never left your device.` })
+      }
     } catch {
       setStatus({ kind: 'error', message: 'Could not read that image. Try a different file.' })
     }
@@ -126,9 +136,9 @@ export default function App() {
 
   // "Less is more": the status line is a live region for screen readers at
   // all times, but only earns screen space when it says something the
-  // preset chips/upload control don't already show — a transient loading or
-  // error message. The default/ready state stays visually hidden.
-  const statusVisible = status.kind === 'loading' || status.kind === 'error'
+  // preset chips/upload control don't already show — a transient loading,
+  // warning, or error message. The default/ready state stays visually hidden.
+  const statusVisible = status.kind === 'loading' || status.kind === 'warning' || status.kind === 'error'
 
   return (
     <>
