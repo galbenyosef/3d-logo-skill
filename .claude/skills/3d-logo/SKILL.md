@@ -135,6 +135,7 @@ function useLogoTextures(logoPath: string, threshold = 18) {
         if (brightness < threshold) d[i + 3] = 0
       }
     }
+    clearDetachedSpecks(d, canvas.width, canvas.height) // see 2b
     ctx.putImageData(imageData, 0, 0)
     const colorTexture = new CanvasTexture(canvas)
     colorTexture.colorSpace = SRGBColorSpace
@@ -230,6 +231,19 @@ function dropSmallSpecks(opaque: Uint8Array, width: number, height: number): Uin
     if (label !== -1 && sizes[label] >= minSize) result[i] = 1
   }
   return result
+}
+
+// Apply the same speck rule to the COLOUR TEXTURE (call it in 2a, after the
+// background removal and before creating the CanvasTexture). Background
+// removal on a textured or noisy backdrop leaves isolated pixels just
+// outside the colour tolerance; the rim ignores them, but without this the
+// face texture still paints them as dust floating around the logo.
+function clearDetachedSpecks(d: Uint8ClampedArray, width: number, height: number) {
+  const n = width * height
+  const visible = new Uint8Array(n)
+  for (let i = 0; i < n; i++) visible[i] = d[i * 4 + 3] > 0 ? 1 : 0
+  const kept = dropSmallSpecks(visible, width, height)
+  for (let i = 0; i < n; i++) if (visible[i] && !kept[i]) d[i * 4 + 3] = 0
 }
 
 // Clockwise-ordered 8-neighbour offsets used by the Moore boundary tracer.
