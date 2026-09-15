@@ -9,69 +9,56 @@
                  ╚═════╝ ╚═════╝     ╚══════╝ ╚═════╝  ╚═════╝  ╚═════╝
 ```
 
-**Turn any flat logo into a premium 3D spinning coin.**\
-One command. Any logo. Instant 3D.
+### Flat in. 3D out.
 
-**[Try it live](https://hasuwini77.github.io/3d-logo-skill/)** — drop in your own logo, see it spin in 10 seconds.
+Any logo → a 3D spinning coin, as one self-contained React Three Fiber component.
 
 <br/>
 
-<img src="screenshots/logo1.webp" width="280" alt="Phoenix Shield 3D coin" />&nbsp;&nbsp;&nbsp;<img src="screenshots/logo2.webp" width="280" alt="Cosmic Eye 3D coin" />&nbsp;&nbsp;&nbsp;<img src="screenshots/logo3.webp" width="280" alt="Wolf Compass 3D coin" />
+<img src="screenshots/firebird.webp" width="260" alt="Firebird enamel-pin logo spinning as a 3D coin over a sunset sky" />&nbsp;<img src="screenshots/koi.webp" width="260" alt="Koi enamel-pin logo spinning as a 3D coin over a sunset sky" />&nbsp;<img src="screenshots/manta.webp" width="260" alt="Manta enamel-pin logo spinning as a 3D coin over a sunset sky" />
 
-<sub><b>Phoenix Shield</b> &nbsp;&bull;&nbsp; <b>Cosmic Eye</b> &nbsp;&bull;&nbsp; <b>Wolf Compass</b></sub>
+<sub><b>FIREBIRD</b> &nbsp;·&nbsp; <b>KOI</b> &nbsp;·&nbsp; <b>MANTA</b></sub>
 
 <br/><br/>
 
-[![Agent Skill](https://img.shields.io/badge/Agent_Skill-compatible-00C853?style=for-the-badge)](https://agentskills.io)&nbsp;
-[![Claude Code](https://img.shields.io/badge/Claude_Code-6C5CE7?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0wIDE4Yy00LjQyIDAtOC0zLjU4LTgtOHMzLjU4LTggOC04IDggMy41OCA4IDgtMy41OCA4LTggOHoiLz48L3N2Zz4=)](https://github.com/hasuwini77/3d-logo-skill)&nbsp;
-[![Cursor](https://img.shields.io/badge/Cursor-000?style=for-the-badge)](https://cursor.com)&nbsp;
-[![Copilot](https://img.shields.io/badge/GitHub_Copilot-000?style=for-the-badge&logo=githubcopilot&logoColor=white)](https://github.com/features/copilot)&nbsp;
-[![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://github.com/google-gemini/gemini-cli)
+[![Try it live](https://img.shields.io/badge/Try_it_live-FFC9A3?style=for-the-badge)](https://hasuwini77.github.io/3d-logo-skill/)&nbsp;
+[![Agent Skill](https://img.shields.io/badge/Agent_Skill-compatible-C98FB5?style=for-the-badge&labelColor=14163A)](https://agentskills.io)&nbsp;
+[![License: MIT](https://img.shields.io/badge/License-MIT-3B3F8F?style=for-the-badge&labelColor=14163A)](LICENSE)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
-[![React Three Fiber](https://img.shields.io/badge/R3F-Three.js-black?style=flat-square&logo=threedotjs)](https://github.com/pmndrs/react-three-fiber)
+<sub>Claude Code · Cursor · Codex · Gemini CLI · GitHub Copilot · <a href="https://agentskills.io/specification">50+ more</a></sub>
 
 </div>
 
 ---
 
-> The rim isn't a generic circle — it traces your logo's actual outline pixel by pixel.
+> The rim isn't a generic circle. It traces your logo's actual outline, every concave notch included.
 
 ## Install
-
-Works with any AI coding agent that supports the [Agent Skills specification](https://agentskills.io) — Claude Code, Cursor, Codex, Gemini CLI, GitHub Copilot, and [50+ more](https://agentskills.io/specification).
 
 ```bash
 npx skills add hasuwini77/3d-logo-skill
 ```
 
+`npx skills add` detects which agents you have and drops the skill in the right folder for each.
+
 <details>
-<summary>Agent-specific install</summary>
+<summary>Claude Code plugin install</summary>
 
 ```bash
-# Claude Code (terminal)
+# terminal
 claude plugin marketplace add hasuwini77/3d-logo-skill
 claude plugin install 3d-logo@3d-logo-skill
 
 # or inside a Claude Code session
 /plugin marketplace add hasuwini77/3d-logo-skill
 /plugin install 3d-logo@3d-logo-skill
-
-# Cursor / Copilot / Gemini CLI / others
-npx skills add hasuwini77/3d-logo-skill
 ```
-
-The `npx skills add` command auto-detects which agents you have installed and places the skill in the correct directory for each.
 
 </details>
 
-## Live Demo
-
-Try it right now, no install required: [hasuwini77.github.io/3d-logo-skill](https://hasuwini77.github.io/3d-logo-skill/). Pick one of the 3 sample logos or drag in your own — it renders live with the exact `SpinningLogo3D.tsx` architecture this skill generates (transparency, Sobel normal map, perimeter-traced chrome rim, environment reflections). Your logo is processed entirely in the browser on an offscreen canvas and never uploaded anywhere.
-
 ## Usage
 
-Once installed, just ask your agent:
+Ask your agent:
 
 ```
 Make my logo at public/logo.png into a 3D spinning coin
@@ -79,11 +66,8 @@ Make my logo at public/logo.png into a 3D spinning coin
 ```
 Use /3d-logo on src/assets/brand-logo.png with night reflections
 ```
-```
-Turn my brand logo into a spinning 3D medal with sunset reflections
-```
 
-The skill generates a self-contained `SpinningLogo3D.tsx` component. Drop it anywhere in your React app:
+You get a self-contained `SpinningLogo3D.tsx`. Drop it anywhere in your React app:
 
 ```tsx
 import { SpinningLogo3D } from './SpinningLogo3D'
@@ -91,34 +75,39 @@ import { SpinningLogo3D } from './SpinningLogo3D'
 <SpinningLogo3D size={540} />
 ```
 
-## Environment Presets
+## Live demo
+
+<a href="https://hasuwini77.github.io/3d-logo-skill/"><img src="images/social-card.png" alt="3D Logo live demo: Firebird coin floating over a painted sunset sky, with preset, upload and reflection controls" /></a>
+
+**[hasuwini77.github.io/3d-logo-skill](https://hasuwini77.github.io/3d-logo-skill/)**: pick a preset or drop in your own logo, switch reflections, drag the thickness. It runs the same `SpinningLogo3D.tsx` architecture the skill generates. Your file is processed on an offscreen canvas and never leaves your device.
+
+## How it works
+
+1. **Background removal**: samples the 1px border, then flood-fills the connected background from the edge. Enclosed details (the white of an eye, the inside of an "O") stay put.
+2. **Outline tracing**: Moore-neighbour contour trace per shape at a real opacity cutoff, with specks dropped. Multi-part logos keep every piece.
+3. **Faces**: front and back planes cut to the same outline; the back is a true mirror, like a stamped coin.
+4. **Chrome rim**: indexed `BufferGeometry` along the smoothed outline, with outward normals for clean reflections.
+5. **Emboss + light**: Sobel normal map on the faces, environment reflections, and `NeutralToneMapping` so your colours don't wash out.
+
+## Reflections
 
 | Preset | Best for | Feeling |
 |--------|----------|---------|
-| **studio** | Corporate, SaaS | Clean, professional |
-| **warehouse** | Gaming, industrial | Gritty, textured |
-| **city** | Tech, startups | Urban, dynamic |
+| **studio** | Corporate, SaaS | Clean, neutral (default) |
+| **warehouse** | Gaming, industrial | Gritty, darker |
+| **city** | Tech, startups | Urban, bright |
 | **night** | Dark themes, premium | Moody, elegant |
 | **dawn** | Health, wellness | Soft, warm |
 | **sunset** | Creative, entertainment | Rich amber |
-
-## How It Works
-
-1. **Background removal** — dark pixels converted to transparent via offscreen canvas
-2. **Perimeter extraction** — alpha channel scanned row-by-row to trace the logo outline (~800 vertices)
-3. **Face rendering** — two `PlaneGeometry` faces whose outline matches the rim from every angle (front reads normally, back is its true mirror, like a stamped coin)
-4. **Chrome rim** — indexed `BufferGeometry` ring with tangent-derived outward normals for smooth reflections
-5. **Reflections** — `MeshStandardMaterial` with `metalness: 1.0, roughness: 0.12` plus environment map for polished chrome
-6. **Normal map embossing** — Sobel filter generates a normal map at runtime for embossed depth on coin faces
 
 ## Customization
 
 | Constant | Default | Controls |
 |----------|---------|----------|
 | `PLANE_SIZE` | 4.8 | Logo face size (3D units) |
-| `THICKNESS` | 0.45 | Coin edge thickness; adjustable via the demo slider, or the `thickness` prop on `SpinningLogo3D` |
+| `THICKNESS` | 0.45 | Coin edge thickness, also exposed as a `thickness` prop |
 | `SPIN_SPEED` | 0.35 | Rotation speed (rad/s) |
-| `BG_THRESHOLD` | 18 | Background removal sensitivity (0–255) |
+| `BG_TOLERANCE` | 24 | How close a pixel must be to the border colour to count as background (0–255) |
 | `EMBOSS_STRENGTH` | 1.5 | Normal map depth (0 = flat, 3+ = deep) |
 
 ## Requirements
@@ -130,20 +119,20 @@ npm install -D @types/three
 
 ## Contributing
 
-1. Fork &rarr; feature branch &rarr; edit `.claude/skills/3d-logo/SKILL.md`
-2. Test locally with `claude install .`
-3. Open a PR with before/after examples
+1. Fork → feature branch → edit `.claude/skills/3d-logo/SKILL.md`
+2. Test locally: `claude plugin marketplace add ./` then `claude plugin install 3d-logo@3d-logo-skill`
+3. Open a PR with before/after coins
 
-Ideas: hover interactions, glow effects, shape detection improvements, custom shaders.
+Open ideas: inner rim for logos with holes, hover interactions, glow, custom shaders.
 
 ## License
 
-MIT &mdash; do whatever you want with it.
+MIT. Do whatever you want with it.
 
 ---
 
 <div align="center">
 <sub>Built with <a href="https://github.com/pmndrs/react-three-fiber">React Three Fiber</a> + <a href="https://github.com/pmndrs/drei">drei</a> + <a href="https://threejs.org">Three.js</a></sub>
 <br/><br/>
-<b>If this skill saved you time, drop a ⭐</b>
+<b>If this saved you time, drop a ⭐</b>
 </div>
