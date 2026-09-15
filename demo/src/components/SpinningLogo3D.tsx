@@ -25,6 +25,17 @@ const SPIN_SPEED = 0.35
 const BG_THRESHOLD = 18
 const EMBOSS_STRENGTH = 1.5
 
+// r/threejs launch feedback (u/BigDeadPixel): "can you change the thickness
+// of the coin?" — exposed as a prop instead of only the module constant.
+// Clamped so the rim geometry never collapses (too thin) or dwarfs the
+// logo faces (too thick).
+const THICKNESS_MIN = 0.15
+const THICKNESS_MAX = 1.2
+
+function clampThickness(value: number): number {
+  return Math.min(THICKNESS_MAX, Math.max(THICKNESS_MIN, value))
+}
+
 interface LogoAssets {
   colorTexture: CanvasTexture
   normalMap: CanvasTexture
@@ -34,7 +45,7 @@ interface LogoAssets {
 }
 
 /** SKILL.md 2a + 2b + 2c, assembled: transparency, normal map, perimeter, rim. */
-function useLogoAssets(logoUrl: string): LogoAssets {
+function useLogoAssets(logoUrl: string, thickness: number): LogoAssets {
   const srcTexture = useTexture(logoUrl)
   return useMemo(() => {
     const img = srcTexture.image as HTMLImageElement
@@ -84,21 +95,32 @@ function useLogoAssets(logoUrl: string): LogoAssets {
     normalMap.colorSpace = LinearSRGBColorSpace
 
     const outlines = extractPerimeter(d, width, height)
-    const rimGeometry = buildRim(outlines, PLANE_SIZE, THICKNESS)
+    const rimGeometry = buildRim(outlines, PLANE_SIZE, thickness)
     const { color, emissive } = pickRimPalette(d)
 
     return { colorTexture, normalMap, rimGeometry, rimColor: color, rimEmissive: emissive }
-  }, [srcTexture])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- thickness rebuilds
+    // only the rim, not the (expensive) texture/normal-map extraction; both
+    // are re-derived here regardless since they share this one memo.
+  }, [srcTexture, thickness])
 }
 
-function Coin({ logoUrl, spinMultiplier }: { logoUrl: string; spinMultiplier: number }) {
+function Coin({
+  logoUrl,
+  spinMultiplier,
+  thickness,
+}: {
+  logoUrl: string
+  spinMultiplier: number
+  thickness: number
+}) {
   const groupRef = useRef<Group>(null)
-  const { colorTexture, normalMap, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl)
+  const { colorTexture, normalMap, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl, thickness)
   const normalScale = useMemo(() => new Vector2(EMBOSS_STRENGTH, EMBOSS_STRENGTH), [])
   useFrame((_, delta) => {
     if (groupRef.current) groupRef.current.rotation.y += delta * SPIN_SPEED * spinMultiplier
   })
-  const { front, back } = useMemo(() => computeCoinFaces(THICKNESS), [])
+  const { front, back } = useMemo(() => computeCoinFaces(thickness), [thickness])
   return (
     <group ref={groupRef}>
       <mesh position={front.position} rotation-y={front.rotationY}>
@@ -166,9 +188,16 @@ export interface SpinningLogo3DProps {
   envPreset: EnvPreset
   /** 1 = full speed, lower values honor prefers-reduced-motion. */
   spinMultiplier?: number
+  /**
+   * Coin edge thickness (SKILL.md's `THICKNESS` constant, now adjustable).
+   * Clamped to [0.15, 1.2] — outside that range the rim either collapses to
+   * nothing or dwarfs the logo faces. Defaults to the original 0.45.
+   */
+  thickness?: number
 }
 
-export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1 }: SpinningLogo3DProps) {
+export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickness = THICKNESS }: SpinningLogo3DProps) {
+  const clampedThickness = clampThickness(thickness)
   return (
     <Canvas
       camera={{ position: [0, 0, 7], fov: 40 }}
@@ -202,7 +231,7 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1 }: Spinn
         <CoinEnvironment envPreset={envPreset} />
       </Suspense>
       <Suspense fallback={null}>
-        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} />
+        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} />
       </Suspense>
     </Canvas>
   )
