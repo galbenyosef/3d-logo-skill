@@ -116,7 +116,7 @@ import { SpinningLogo3D } from './SpinningLogo3D'
 | Constant | Default | Controls |
 |----------|---------|----------|
 | `PLANE_SIZE` | 4.8 | Logo face size (3D units) |
-| `THICKNESS` | 0.45 | Coin edge thickness |
+| `THICKNESS` | 0.45 | Coin edge thickness; adjustable via the demo slider, or the `thickness` prop on `SpinningLogo3D` |
 | `SPIN_SPEED` | 0.35 | Rotation speed (rad/s) |
 | `BG_THRESHOLD` | 18 | Background removal sensitivity (0–255) |
 | `EMBOSS_STRENGTH` | 1.5 | Normal map depth (0 = flat, 3+ = deep) |
