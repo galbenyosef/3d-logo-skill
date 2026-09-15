@@ -15,7 +15,7 @@ Any logo → a 3D spinning coin, as one self-contained React Three Fiber compone
 
 <br/>
 
-<img src="screenshots/firebird.webp" width="260" alt="Firebird enamel-pin logo spinning as a 3D coin over a sunset sky" />&nbsp;<img src="screenshots/koi.webp" width="260" alt="Koi enamel-pin logo spinning as a 3D coin over a sunset sky" />&nbsp;<img src="screenshots/manta.webp" width="260" alt="Manta enamel-pin logo spinning as a 3D coin over a sunset sky" />
+<img src="screenshots/coins-synced.webp" width="800" alt="Firebird, Koi and Manta enamel-pin logos spinning in sync as 3D coins over a sunset sky" />
 
 <sub><b>FIREBIRD</b> &nbsp;·&nbsp; <b>KOI</b> &nbsp;·&nbsp; <b>MANTA</b></sub>
 
