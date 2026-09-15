@@ -524,6 +524,8 @@ export function SpinningLogo3D({ size = 540 }: { size?: number }) {
 }
 ```
 
+**Making `THICKNESS` a prop:** the demo build (`demo/src/components/SpinningLogo3D.tsx`) exposes it as an optional `thickness?: number` prop instead of a bare constant, clamped to `[0.15, 1.2]` and threaded into both `buildRim(outlines, PLANE_SIZE, thickness)` and `computeCoinFaces(thickness)` — put it in each memo's dependency array so the rim/faces rebuild on change without remounting the Canvas.
+
 ### Step 3: Environment preset
 
 Ask the user which reflection environment they want:
