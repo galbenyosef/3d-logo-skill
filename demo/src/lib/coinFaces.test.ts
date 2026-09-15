@@ -25,4 +25,14 @@ describe('computeCoinFaces', () => {
     expect(front.position[2]).toBeCloseTo(0.5)
     expect(back.position[2]).toBeCloseTo(-0.5)
   })
+
+  it('doubling thickness (0.9 vs the 0.45 default) doubles the front/back z offsets', () => {
+    // The demo's ThicknessSlider ships a "1.0" reading — this pins the same
+    // ratio the slider relies on: the faces spread apart linearly with
+    // thickness, they don't stay pinned to the default.
+    const base = computeCoinFaces(0.45)
+    const doubled = computeCoinFaces(0.9)
+    expect(doubled.front.position[2]).toBeCloseTo(base.front.position[2] * 2)
+    expect(doubled.back.position[2]).toBeCloseTo(base.back.position[2] * 2)
+  })
 })

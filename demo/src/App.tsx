@@ -4,6 +4,7 @@ import { Hero } from './components/Hero'
 import { PauseToggle } from './components/PauseToggle'
 import { Sky } from './components/Sky'
 import { SpinningLogo3D } from './components/SpinningLogo3D'
+import { ThicknessSlider } from './components/ThicknessSlider'
 import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets'
 import { isAllowedImageType } from './lib/fileValidation'
 import { prepareUploadedLogo } from './lib/imagePipeline'
@@ -50,6 +51,9 @@ export default function App() {
   // The coin reflects the dusk sky it floats in — sunset reads truest
   // against the twilight gradient of every other preset (see report).
   const [envPreset, setEnvPreset] = useState<EnvPreset>('sunset')
+  // r/threejs launch feedback (u/BigDeadPixel): "can you change the
+  // thickness of the coin?" — 0.45 matches SpinningLogo3D's own default.
+  const [thickness, setThickness] = useState(0.45)
   const [status, setStatus] = useState<Status>({
     kind: 'ready',
     message: `Showing the ${defaultLogo.label} sample. Drop your own logo anywhere on this screen.`,
@@ -163,7 +167,12 @@ export default function App() {
                   it on the coin's corner without bobbing along (issue #21). */}
               <div className="coin-anchor">
                 <div className="coin-canvas-wrap">
-                  <SpinningLogo3D logoUrl={activeLogo.url} envPreset={envPreset} spinMultiplier={spinMultiplier} />
+                  <SpinningLogo3D
+                    logoUrl={activeLogo.url}
+                    envPreset={envPreset}
+                    spinMultiplier={spinMultiplier}
+                    thickness={thickness}
+                  />
                 </div>
                 <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
               </div>
@@ -233,6 +242,8 @@ export default function App() {
                     ))}
                   </select>
                 </div>
+
+                <ThicknessSlider thickness={thickness} onChange={setThickness} />
               </div>
 
               <p

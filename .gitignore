@@ -10,3 +10,4 @@ demo/playwright-report
 demo/.check-shots
 demo/.playwright-mcp
 demo/*.png
+.ui-test/
