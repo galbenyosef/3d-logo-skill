@@ -122,6 +122,38 @@ test.describe('3D logo skill demo', () => {
     expect(consoleErrors).toEqual([])
   })
 
+  test('thickness slider is focusable, updates its value, and the coin keeps rendering', async ({ page }) => {
+    const consoleErrors: string[] = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text())
+    })
+    page.on('pageerror', (err) => consoleErrors.push(String(err)))
+
+    await page.goto('/')
+
+    const slider = page.getByRole('slider', { name: 'Coin thickness' })
+    await expect(slider).toBeVisible()
+    await expect(slider).toHaveValue('0.45')
+
+    // Keyboard operable: Home/End/arrow keys work on a native range input
+    // without any extra wiring, but this confirms it's actually reachable.
+    await slider.focus()
+    await expect(slider).toBeFocused()
+
+    await slider.fill('1')
+    await expect(slider).toHaveValue('1')
+    await expect(page.getByText('1.00', { exact: true })).toBeVisible()
+
+    // Changing thickness rebuilds the rim/faces, not the whole canvas.
+    const canvas = page.locator('.coin-canvas-wrap canvas')
+    await expect(canvas).toBeVisible()
+    const box = await canvas.boundingBox()
+    expect(box?.width ?? 0).toBeGreaterThan(50)
+    expect(box?.height ?? 0).toBeGreaterThan(50)
+
+    expect(consoleErrors).toEqual([])
+  })
+
   test('screen 2 is a single numbered install flow, not a separate "how it works" section', async ({ page }) => {
     await page.goto('/')
 
