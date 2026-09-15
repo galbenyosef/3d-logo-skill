@@ -77,7 +77,7 @@ import { SpinningLogo3D } from './SpinningLogo3D'
 
 ## Live demo
 
-<a href="https://hasuwini77.github.io/3d-logo-skill/"><img src="images/social-card.png" alt="3D Logo live demo: Firebird coin floating over a painted sunset sky, with preset, upload, reflection and thickness controls" /></a>
+<a href="https://hasuwini77.github.io/3d-logo-skill/"><img src="images/social-card.png" alt="3D Logo live demo: Firebird coin floating over a painted sunset sky, with preset, upload and reflection controls" /></a>
 
 **[hasuwini77.github.io/3d-logo-skill](https://hasuwini77.github.io/3d-logo-skill/)**: pick a preset or drop in your own logo, switch reflections, drag the thickness. It runs the same `SpinningLogo3D.tsx` architecture the skill generates. Your file is processed on an offscreen canvas and never leaves your device.
 
