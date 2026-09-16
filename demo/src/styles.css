@@ -422,6 +422,20 @@ a {
   display: block;
 }
 
+/* Drag-to-spin surface around the canvas. pan-y keeps vertical page scroll
+   working on touch; horizontal drags spin the coin. */
+.coin-drag {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.coin-drag.is-grabbing {
+  cursor: grabbing;
+}
+
 .drop-overlay {
   position: absolute;
   inset: var(--space-3);

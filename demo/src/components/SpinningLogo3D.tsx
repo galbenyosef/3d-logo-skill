@@ -1,10 +1,11 @@
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef, useState, type MutableRefObject, type PointerEvent } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, useTexture } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
 import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
 import { computeCoinFaces, wrapFrontYaw } from '../lib/coinFaces'
+import { stepSpin, type SpinState } from '../lib/dragSpin'
 import {
   applyBrightnessThreshold,
   clearDetachedSpecks,
@@ -35,6 +36,16 @@ const THICKNESS_MAX = 1.2
 
 function clampThickness(value: number): number {
   return Math.min(THICKNESS_MAX, Math.max(THICKNESS_MIN, value))
+}
+
+/** Pointer state shared from the DOM wrapper into the render loop without re-rendering. */
+interface DragRef {
+  active: boolean
+  pointerId: number
+  lastX: number
+  startY: number
+  pendingDx: number
+  dyTotal: number
 }
 
 interface LogoAssets {
@@ -124,20 +135,30 @@ function Coin({
   spinMultiplier,
   thickness,
   hasText,
+  drag,
 }: {
   logoUrl: string
   spinMultiplier: number
   thickness: number
   hasText: boolean
+  drag: MutableRefObject<DragRef>
 }) {
   const groupRef = useRef<Group>(null)
-  const angleRef = useRef(0)
+  const spinRef = useRef<SpinState>({ angle: 0, velocity: 0, tilt: 0 })
   const { colorTexture, normalMap, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl, thickness)
   const normalScale = useMemo(() => new Vector2(EMBOSS_STRENGTH, EMBOSS_STRENGTH), [])
   useFrame((_, delta) => {
     if (!groupRef.current) return
-    angleRef.current += delta * SPIN_SPEED * spinMultiplier
-    groupRef.current.rotation.y = hasText ? wrapFrontYaw(angleRef.current) : angleRef.current
+    const d = drag.current
+    const spin = stepSpin(
+      spinRef.current,
+      { dragging: d.active, dx: d.pendingDx, dyTotal: d.dyTotal, baseSpeed: SPIN_SPEED * spinMultiplier },
+      delta,
+    )
+    d.pendingDx = 0
+    spinRef.current = spin
+    groupRef.current.rotation.y = hasText ? wrapFrontYaw(spin.angle) : spin.angle
+    groupRef.current.rotation.x = spin.tilt
   })
   const { front, back } = useMemo(() => computeCoinFaces(thickness), [thickness])
   return (
@@ -219,7 +240,37 @@ export interface SpinningLogo3DProps {
 
 export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickness = THICKNESS, hasText = false }: SpinningLogo3DProps) {
   const clampedThickness = clampThickness(thickness)
+  const drag = useRef<DragRef>({ active: false, pointerId: -1, lastX: 0, startY: 0, pendingDx: 0, dyTotal: 0 })
+  const [grabbing, setGrabbing] = useState(false)
+
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    Object.assign(drag.current, { active: true, pointerId: e.pointerId, lastX: e.clientX, startY: e.clientY, pendingDx: 0, dyTotal: 0 })
+    setGrabbing(true)
+  }
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    if (!d.active || e.pointerId !== d.pointerId) return
+    d.pendingDx += e.clientX - d.lastX
+    d.lastX = e.clientX
+    d.dyTotal = e.clientY - d.startY
+  }
+  const endDrag = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerId !== drag.current.pointerId) return
+    drag.current.active = false
+    setGrabbing(false)
+  }
+
   return (
+    <div
+      className={`coin-drag${grabbing ? ' is-grabbing' : ''}`}
+      title="Drag to spin"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
     <Canvas
       camera={{ position: [0, 0, 7], fov: 40 }}
       // Khronos PBR Neutral instead of R3F's default ACES Filmic: ACES
@@ -252,8 +303,9 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickne
         <CoinEnvironment envPreset={envPreset} />
       </Suspense>
       <Suspense fallback={null}>
-        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} hasText={hasText} />
+        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} hasText={hasText} drag={drag} />
       </Suspense>
     </Canvas>
+    </div>
   )
 }
