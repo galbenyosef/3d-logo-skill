@@ -1,7 +1,12 @@
-import { Suspense, useMemo, useRef, useState, type MutableRefObject, type PointerEvent } from 'react'
+import { Component, Suspense, useMemo, useRef, useState, type MutableRefObject, type PointerEvent, type ReactNode } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, useTexture } from '@react-three/drei'
+import { Environment, Lightformer, useTexture } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
+import studioHdrUrl from '../assets/hdri/studio_small_03_1k.hdr?url'
+import warehouseHdrUrl from '../assets/hdri/empty_warehouse_01_1k.hdr?url'
+import cityHdrUrl from '../assets/hdri/potsdamer_platz_1k.hdr?url'
+import nightHdrUrl from '../assets/hdri/dikhololo_night_1k.hdr?url'
+import dawnHdrUrl from '../assets/hdri/kiara_1_dawn_1k.hdr?url'
 import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
 import { computeCoinFaces, wrapFrontYaw } from '../lib/coinFaces'
@@ -214,13 +219,47 @@ function Coin({
 }
 
 /**
- * `sunset` — the default preset (see App.tsx) — ships self-hosted, since
- * defaulting to it means every first visit pays its fetch cost. Every other
- * preset still goes through drei's own CDN loader on demand.
+ * Every preset ships self-hosted (the same Poly Haven CC0 files drei's
+ * `preset` prop would fetch from raw.githack.com), so reflections work
+ * offline and behind firewalls. Each file is its own asset URL, so only the
+ * preset a visitor actually picks is downloaded.
  */
+const ENV_HDR_URLS: Record<EnvPreset, string> = {
+  studio: studioHdrUrl,
+  warehouse: warehouseHdrUrl,
+  city: cityHdrUrl,
+  night: nightHdrUrl,
+  dawn: dawnHdrUrl,
+  sunset: sunsetHdrUrl,
+}
+
 function CoinEnvironment({ envPreset }: { envPreset: EnvPreset }) {
-  if (envPreset === 'sunset') return <Environment files={sunsetHdrUrl} />
-  return <Environment preset={envPreset} />
+  return <Environment files={ENV_HDR_URLS[envPreset]} />
+}
+
+/** Procedural studio lighting — no files, so it can never fail to load. */
+function FallbackEnvironment() {
+  return (
+    <Environment resolution={64}>
+      <Lightformer intensity={2} position={[0, 4, 3]} scale={[8, 2, 1]} />
+      <Lightformer intensity={1.2} position={[-5, 0, 2]} rotation-y={Math.PI / 2} scale={[6, 3, 1]} />
+      <Lightformer intensity={1.2} position={[5, 0, 2]} rotation-y={-Math.PI / 2} scale={[6, 3, 1]} />
+    </Environment>
+  )
+}
+
+/**
+ * If an HDR ever fails to load, fall back to procedural lighting instead of
+ * letting the error unmount the whole Canvas (the coin used to vanish).
+ */
+class EnvironmentBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    return this.state.failed ? <FallbackEnvironment /> : this.props.children
+  }
 }
 
 export interface SpinningLogo3DProps {
@@ -299,9 +338,11 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickne
         own suspend (issue #13 — the coin used to only appear once the CDN
         HDR finished loading).
       */}
-      <Suspense fallback={null}>
-        <CoinEnvironment envPreset={envPreset} />
-      </Suspense>
+      <EnvironmentBoundary key={envPreset}>
+        <Suspense fallback={null}>
+          <CoinEnvironment envPreset={envPreset} />
+        </Suspense>
+      </EnvironmentBoundary>
       <Suspense fallback={null}>
         <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} hasText={hasText} drag={drag} />
       </Suspense>
