@@ -4,7 +4,7 @@ import { Environment, useTexture } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
 import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
-import { computeCoinFaces } from '../lib/coinFaces'
+import { computeCoinFaces, wrapFrontYaw } from '../lib/coinFaces'
 import {
   applyBrightnessThreshold,
   clearDetachedSpecks,
@@ -109,16 +109,21 @@ function Coin({
   logoUrl,
   spinMultiplier,
   thickness,
+  hasText,
 }: {
   logoUrl: string
   spinMultiplier: number
   thickness: number
+  hasText: boolean
 }) {
   const groupRef = useRef<Group>(null)
+  const angleRef = useRef(0)
   const { colorTexture, normalMap, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl, thickness)
   const normalScale = useMemo(() => new Vector2(EMBOSS_STRENGTH, EMBOSS_STRENGTH), [])
   useFrame((_, delta) => {
-    if (groupRef.current) groupRef.current.rotation.y += delta * SPIN_SPEED * spinMultiplier
+    if (!groupRef.current) return
+    angleRef.current += delta * SPIN_SPEED * spinMultiplier
+    groupRef.current.rotation.y = hasText ? wrapFrontYaw(angleRef.current) : angleRef.current
   })
   const { front, back } = useMemo(() => computeCoinFaces(thickness), [thickness])
   return (
@@ -194,9 +199,11 @@ export interface SpinningLogo3DProps {
    * nothing or dwarfs the logo faces. Defaults to the original 0.45.
    */
   thickness?: number
+  /** Logo contains text: never show the (mirrored) back face — see wrapFrontYaw. */
+  hasText?: boolean
 }
 
-export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickness = THICKNESS }: SpinningLogo3DProps) {
+export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickness = THICKNESS, hasText = false }: SpinningLogo3DProps) {
   const clampedThickness = clampThickness(thickness)
   return (
     <Canvas
@@ -231,7 +238,7 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickne
         <CoinEnvironment envPreset={envPreset} />
       </Suspense>
       <Suspense fallback={null}>
-        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} />
+        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} hasText={hasText} />
       </Suspense>
     </Canvas>
   )

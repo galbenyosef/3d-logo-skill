@@ -54,6 +54,7 @@ export default function App() {
   // r/threejs launch feedback (u/BigDeadPixel): "can you change the
   // thickness of the coin?" — 0.45 matches SpinningLogo3D's own default.
   const [thickness, setThickness] = useState(0.45)
+  const [hasText, setHasText] = useState(false)
   const [status, setStatus] = useState<Status>({
     kind: 'ready',
     message: `Showing the ${defaultLogo.label} sample. Drop your own logo anywhere on this screen.`,
@@ -172,6 +173,7 @@ export default function App() {
                     envPreset={envPreset}
                     spinMultiplier={spinMultiplier}
                     thickness={thickness}
+                    hasText={hasText}
                   />
                 </div>
                 <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
@@ -244,6 +246,18 @@ export default function App() {
                 </div>
 
                 <ThicknessSlider thickness={thickness} onChange={setThickness} />
+
+                <div className="control-group">
+                  <label className="control-label" htmlFor="has-text-toggle">
+                    <input
+                      id="has-text-toggle"
+                      type="checkbox"
+                      checked={hasText}
+                      onChange={(e) => setHasText(e.target.checked)}
+                    />
+                    Logo has text
+                  </label>
+                </div>
               </div>
 
               <p
