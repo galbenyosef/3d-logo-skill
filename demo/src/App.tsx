@@ -246,19 +246,25 @@ export default function App() {
                 </div>
 
                 <ThicknessSlider thickness={thickness} onChange={setThickness} />
-
-                <div className="control-group">
-                  <label className="control-label" htmlFor="has-text-toggle">
-                    <input
-                      id="has-text-toggle"
-                      type="checkbox"
-                      checked={hasText}
-                      onChange={(e) => setHasText(e.target.checked)}
-                    />
-                    Logo has text
-                  </label>
-                </div>
               </div>
+
+              <label className="switch" htmlFor="has-text-toggle">
+                <input
+                  id="has-text-toggle"
+                  className="switch-input"
+                  type="checkbox"
+                  role="switch"
+                  checked={hasText}
+                  onChange={(e) => setHasText(e.target.checked)}
+                />
+                <span className="switch-text">
+                  Logo has text
+                  <span className="switch-hint" aria-hidden="true">no mirrored letters</span>
+                </span>
+                <span className="switch-track" aria-hidden="true">
+                  <span className="switch-thumb" />
+                </span>
+              </label>
 
               <p
                 className={`status${statusVisible ? '' : ' visually-hidden'}`}
