@@ -31,3 +31,13 @@ export function computeCoinFaces(thickness: number): CoinFaces {
     back: { position: [0, 0, -half], side: BackSide, rotationY: 0 },
   }
 }
+
+/**
+ * Text-logo yaw: wraps an accumulated spin angle into [-PI/2, PI/2) so the
+ * front face always faces the camera. The coin snaps 180° exactly when it is
+ * edge-on (both edge-on views are identical), so text never reads mirrored
+ * and the back face's true-mirror silhouette is never shown.
+ */
+export function wrapFrontYaw(angle: number): number {
+  return ((((angle + Math.PI / 2) % Math.PI) + Math.PI) % Math.PI) - Math.PI / 2
+}

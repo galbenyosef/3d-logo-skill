@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BackSide, FrontSide } from 'three'
-import { computeCoinFaces } from './coinFaces'
+import { computeCoinFaces, wrapFrontYaw } from './coinFaces'
 
 describe('computeCoinFaces', () => {
   it('places the front face at +half with no rotation and FrontSide', () => {
@@ -34,5 +34,16 @@ describe('computeCoinFaces', () => {
     const doubled = computeCoinFaces(0.9)
     expect(doubled.front.position[2]).toBeCloseTo(base.front.position[2] * 2)
     expect(doubled.back.position[2]).toBeCloseTo(base.back.position[2] * 2)
+  })
+})
+
+describe('wrapFrontYaw', () => {
+  it('keeps the front face toward the camera, snapping only at edge-on', () => {
+    const deg = (d: number) => (d * Math.PI) / 180
+    expect(wrapFrontYaw(deg(45))).toBeCloseTo(deg(45))
+    expect(wrapFrontYaw(deg(89))).toBeCloseTo(deg(89))
+    expect(wrapFrontYaw(deg(91))).toBeCloseTo(deg(-89))
+    expect(wrapFrontYaw(deg(180))).toBeCloseTo(0)
+    expect(wrapFrontYaw(deg(-100))).toBeCloseTo(deg(80))
   })
 })
