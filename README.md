@@ -100,6 +100,12 @@ import { SpinningLogo3D } from './SpinningLogo3D'
 | **dawn** | Health, wellness | Soft, warm |
 | **sunset** | Creative, entertainment | Rich amber |
 
+### Works offline
+
+The coin needs nothing from the internet. The live demo self-hosts all six HDRs (the same CC0 Poly Haven files drei's `preset` prop would download from a CDN), bundles its fonts, and processes uploads locally, so the coin renders with no internet, behind firewalls, and in air-gapped setups (the GitHub star count is the only online extra, and it simply hides). Only the picked reflection is loaded, and if an HDR ever fails to load the coin falls back to procedural studio lighting instead of disappearing.
+
+The skill does the same for your project: it saves the chosen HDR into `public/hdri/` and loads it with `<Environment files=… />` instead of `preset=`, so the generated component has no runtime network dependency.
+
 ## Customization
 
 | Constant | Default | Controls |
