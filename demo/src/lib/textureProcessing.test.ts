@@ -10,6 +10,7 @@ import {
   pickRimPalette,
   removeBackgroundFromEdges,
   type RGB,
+  computeSquareFit,
 } from './textureProcessing'
 
 function makeFlatImage(width: number, height: number, rgba: [number, number, number, number]): Uint8ClampedArray {
@@ -477,5 +478,31 @@ describe('clearDetachedSpecks', () => {
     d[(3 * 100 + 3) * 4 + 3] = 40
     clearDetachedSpecks(d, 100, 100)
     expect(alphaAt(d, 3, 3)).toBe(0)
+  })
+})
+
+describe('computeSquareFit', () => {
+  function rgba(width: number, height: number, opaque: [number, number, number, number]) {
+    const data = new Uint8ClampedArray(width * height * 4)
+    const [x0, y0, x1, y1] = opaque
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) data[(y * width + x) * 4 + 3] = 255
+    return data
+  }
+
+  it('centres a wide, off-centre logo on a square without stretching it', () => {
+    // 160x90 (16:9) canvas, 80x40 of artwork pushed toward the top-left.
+    const fit = computeSquareFit(rgba(160, 90, [10, 5, 89, 44]), 160, 90, 0)!
+    expect(fit).toMatchObject({ size: 80, sx: 10, sy: 5, sw: 80, sh: 40, dx: 0, dy: 20 })
+  })
+
+  it('keeps a square preset-style logo at its original size and position', () => {
+    // Koi: 768px square, opaque box 27..739 — same as the bundled preset.
+    const fit = computeSquareFit(rgba(768, 768, [27, 28, 739, 738]), 768, 768)!
+    expect(Math.abs(fit.size - 768)).toBeLessThanOrEqual(2)
+    expect(Math.abs(fit.dx - 27)).toBeLessThanOrEqual(1)
+  })
+
+  it('returns null for a fully transparent image', () => {
+    expect(computeSquareFit(new Uint8ClampedArray(4 * 4 * 4), 4, 4)).toBeNull()
   })
 })

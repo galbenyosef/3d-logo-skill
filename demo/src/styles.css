@@ -606,6 +606,13 @@ a {
   background-color: var(--control-fill-strong);
 }
 
+/* The open list is drawn by the OS: on Windows Chrome it ignores the dark
+   color-scheme and paints a light popup, so white option text vanished. */
+.select option {
+  background-color: var(--sky-top);
+  color: var(--text);
+}
+
 /* Thickness slider's numeric readout, appended to .control-label so it
    inherits the same mono/uppercase/letter-spacing treatment as the label
    text next to it, just left-aligned via margin-left: auto. */

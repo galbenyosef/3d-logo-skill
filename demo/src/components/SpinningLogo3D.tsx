@@ -8,6 +8,7 @@ import { computeCoinFaces, wrapFrontYaw } from '../lib/coinFaces'
 import {
   applyBrightnessThreshold,
   clearDetachedSpecks,
+  computeSquareFit,
   BG_TOLERANCE,
   detectSolidBackground,
   extractPerimeter,
@@ -49,15 +50,15 @@ function useLogoAssets(logoUrl: string, thickness: number): LogoAssets {
   const srcTexture = useTexture(logoUrl)
   return useMemo(() => {
     const img = srcTexture.image as HTMLImageElement
-    const width = img.naturalWidth || img.width
-    const height = img.naturalHeight || img.height
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(img, 0, 0, width, height)
-    const imageData = ctx.getImageData(0, 0, width, height)
-    const d = imageData.data
+    const srcWidth = img.naturalWidth || img.width
+    const srcHeight = img.naturalHeight || img.height
+    const srcCanvas = document.createElement('canvas')
+    srcCanvas.width = srcWidth
+    srcCanvas.height = srcHeight
+    const srcCtx = srcCanvas.getContext('2d')!
+    srcCtx.drawImage(img, 0, 0, srcWidth, srcHeight)
+    const srcImageData = srcCtx.getImageData(0, 0, srcWidth, srcHeight)
+    const sd = srcImageData.data
 
     // Only remove a background when the source has no real alpha of its own
     // (SKILL.md 2a: "if already transparent, skip"). A solid flat border
@@ -65,18 +66,31 @@ function useLogoAssets(logoUrl: string, thickness: number): LogoAssets {
     // flood fill so enclosed same-colour details inside the logo survive;
     // only a photo/gradient/busy edge — where detectSolidBackground finds
     // nothing — falls back to the old global dark-brightness threshold.
-    if (!hasNativeAlpha(d)) {
-      const bg = detectSolidBackground(d, width, height)
+    if (!hasNativeAlpha(sd)) {
+      const bg = detectSolidBackground(sd, srcWidth, srcHeight)
       if (bg) {
-        removeBackgroundFromEdges(d, width, height, bg, BG_TOLERANCE)
+        removeBackgroundFromEdges(sd, srcWidth, srcHeight, bg, BG_TOLERANCE)
       } else {
-        applyBrightnessThreshold(d, BG_THRESHOLD)
+        applyBrightnessThreshold(sd, BG_THRESHOLD)
       }
     }
     // Same speck rule the rim uses, applied to the colour texture too, so
     // stray pixels left by a noisy background don't float on the face.
-    clearDetachedSpecks(d, width, height)
-    ctx.putImageData(imageData, 0, 0)
+    clearDetachedSpecks(sd, srcWidth, srcHeight)
+    srcCtx.putImageData(srcImageData, 0, 0)
+
+    // The faces are square planes: re-centre the artwork on a square canvas
+    // so non-square uploads keep their proportions instead of stretching.
+    const fit = computeSquareFit(sd, srcWidth, srcHeight)
+    const width = fit ? fit.size : srcWidth
+    const height = fit ? fit.size : srcHeight
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')!
+    if (fit) ctx.drawImage(srcCanvas, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx, fit.dy, fit.sw, fit.sh)
+    else ctx.drawImage(srcCanvas, 0, 0)
+    const d = ctx.getImageData(0, 0, width, height).data
 
     const colorTexture = new CanvasTexture(canvas)
     colorTexture.colorSpace = SRGBColorSpace
