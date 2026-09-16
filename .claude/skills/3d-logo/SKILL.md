@@ -524,7 +524,8 @@ export function SpinningLogo3D({ size = 540 }: { size?: number }) {
         <directionalLight position={[5, 5, 5]} intensity={2.5} />
         <directionalLight position={[-3, -2, 4]} intensity={0.8} color="#06b6d4" />
         <directionalLight position={[0, 0, -5]} intensity={0.5} color="#0ea5e9" />
-        <Environment preset="warehouse" />
+        {/* Self-hosted HDR (Step 3) — works offline; preset= would fetch from a CDN */}
+        <Environment files="/hdri/empty_warehouse_01_1k.hdr" />
         <Suspense fallback={null}>
           <Coin />
         </Suspense>
@@ -547,6 +548,28 @@ Ask the user which reflection environment they want:
 - **"sunset"** — amber warmth
 
 Default to "studio" if the user doesn't specify.
+
+**Self-host the HDR so the component works offline.** `<Environment preset="…" />` downloads the HDR at runtime from `raw.githack.com` — offline, behind a firewall, or if that CDN is down, the load throws and takes the whole Canvas (and the coin) with it. Instead, download only the chosen file once into the project's static folder (e.g. `public/hdri/`) and load it with `files`:
+
+```bash
+mkdir -p public/hdri && curl -fL -o public/hdri/studio_small_03_1k.hdr \
+  https://raw.githubusercontent.com/pmndrs/drei-assets/456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/studio_small_03_1k.hdr
+```
+
+| Preset | File (Poly Haven, CC0) |
+|--------|------------------------|
+| studio | `studio_small_03_1k.hdr` |
+| warehouse | `empty_warehouse_01_1k.hdr` |
+| city | `potsdamer_platz_1k.hdr` |
+| night | `dikhololo_night_1k.hdr` |
+| dawn | `kiara_1_dawn_1k.hdr` |
+| sunset | `venice_sunset_1k.hdr` |
+
+```tsx
+<Environment files="/hdri/studio_small_03_1k.hdr" />
+```
+
+Each file is ~1.4–1.7 MB. If the user wants zero asset files, use drei `<Lightformer>`s inside `<Environment resolution={64}>` for procedural studio lighting instead (no download, slightly more generic reflections).
 
 ### Step 4: Tunable constants
 
