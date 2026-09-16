@@ -38,6 +38,8 @@ file <path-to-logo>
 ```
 The extension may lie (e.g., a `.png` that's actually JPEG). This matters because JPEG has no alpha channel — the transparency must be generated at runtime.
 
+**Does the logo contain text?** Look at the image. If it has letters or numbers, set `HAS_TEXT = true` (ask the user if unsure). The back face is a true mirror image (see 2d), so text would read backwards; `HAS_TEXT` keeps it readable.
+
 ### Step 2: Generate the component
 
 Create `SpinningLogo3D.tsx` using this architecture:
@@ -444,12 +446,20 @@ Two `PlaneGeometry` faces (front + back) with the transparent texture. The back 
 
 **Critical**: Do NOT rotate the back face `[0, PI, 0]`, and do NOT flip its UVs. Either one makes the back logo "readable" but mirrors its silhouette against the rim, which keeps the front outline — so on any asymmetric logo the rim visibly traces a reversed shape behind the face (issue #11). The back face must be the same plane as the front, just seen from behind: same position/rotation, pushed to `-half`, `side={BackSide}`.
 
+**Text logos (`HAS_TEXT = true`)**: never show the back. Wrap the displayed yaw into `[-π/2, π/2)` — the coin spins to edge-on, then snaps 180° to the other edge (invisible: both edge-on views are identical), so the front face (readable, rim-aligned) always faces the camera and spin direction stays consistent. Don't "fix" text by rotating/flipping the back face — see above.
+
 ```tsx
 function Coin() {
   const groupRef = useRef<Group>(null)
+  const angle = useRef(0)
   const { colorTexture, normalMap, rimGeometry } = useLogoAssets()
   useFrame((_, delta) => {
-    if (groupRef.current) groupRef.current.rotation.y += delta * SPIN_SPEED
+    if (!groupRef.current) return
+    angle.current += delta * SPIN_SPEED
+    groupRef.current.rotation.y = HAS_TEXT
+      // front always faces camera: snap 180° at edge-on so text never mirrors
+      ? ((((angle.current + Math.PI / 2) % Math.PI) + Math.PI) % Math.PI) - Math.PI / 2
+      : angle.current
   })
   const half = THICKNESS / 2
   return (
@@ -551,6 +561,7 @@ Place these at the top of the file so the user can easily adjust:
 | `BG_TOLERANCE` | 24 | Max per-channel colour difference for a pixel to count as background, in both border detection and the flood fill (0-255) |
 | `BORDER_MATCH_RATIO` | 0.85 | Fraction of border pixels that must agree on a colour for it to count as a solid background |
 | `EMBOSS_STRENGTH` | 1.5 | Normal map intensity (0 = flat, 3+ = deep emboss) |
+| `HAS_TEXT` | false | `true` for logos with text — front face always shown, text never mirrored |
 
 ### Step 5: Integration
 
@@ -565,6 +576,7 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 
 - **DO NOT use CircleGeometry** for the face — its UV mapping mirrors the texture. Always use PlaneGeometry.
 - **DO NOT flip UVs or rotate the back face by PI** — both mirror the back silhouette against the rim. The back face is the front plane moved to `-half` with `side={BackSide}`.
+- **Text logos need `HAS_TEXT = true`** — otherwise the back reads mirrored, like a real coin. Wrap the yaw (2d); don't touch the back face.
 - **Suspense MUST be inside `<Canvas>`** — R3F's `useTexture` suspends within its own reconciler. An outer Suspense won't catch it and the component will flash/disappear.
 - **Use `DoubleSide` on the rim material** — the perimeter winding creates mixed normal directions. DoubleSide ensures all faces render regardless.
 - **Use `depthWrite={false}`** on the transparent face materials — prevents z-fighting between front and back faces during rotation.
