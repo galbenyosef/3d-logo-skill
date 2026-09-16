@@ -598,3 +598,57 @@ export function pickRimPalette(data: Uint8ClampedArray): RimPalette {
   if (hue >= 170 && hue < 290) return { color: '#8ecae6', emissive: '#06b6d4' } // cyan/blue (default)
   return { color: '#e68e8e', emissive: '#d40606' } // red/magenta
 }
+
+export interface SquareFit {
+  /** Side of the square canvas the logo is re-centred onto. */
+  size: number
+  /** Crop rectangle in the source image (the opaque bounding box). */
+  sx: number
+  sy: number
+  sw: number
+  sh: number
+  /** Where the crop lands, unscaled, inside the square. */
+  dx: number
+  dy: number
+}
+
+/**
+ * The coin faces are square planes, so a non-square upload (e.g. a 16:9
+ * logo with wide empty margins) got stretched to fit and sat off-centre.
+ * Crops to the opaque bounding box and centres it on a square whose side
+ * leaves `margin` of empty space on the longest axis — 0.036 matches the
+ * bundled presets (768px squares with ~28px of padding), so they render
+ * unchanged. Returns null when nothing is opaque.
+ */
+export function computeSquareFit(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  margin = 0.036,
+  alphaThreshold = ALPHA_OPAQUE_THRESHOLD,
+): SquareFit | null {
+  let minX = width, minY = height, maxX = -1, maxY = -1
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > alphaThreshold) {
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+      }
+    }
+  }
+  if (maxX < 0) return null
+  const sw = maxX - minX + 1
+  const sh = maxY - minY + 1
+  const size = Math.ceil(Math.max(sw, sh) / (1 - 2 * margin))
+  return {
+    size,
+    sx: minX,
+    sy: minY,
+    sw,
+    sh,
+    dx: Math.floor((size - sw) / 2),
+    dy: Math.floor((size - sh) / 2),
+  }
+}
