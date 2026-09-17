@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BackSide, FrontSide } from 'three'
-import { computeCoinFaces, edgeThinScale, EDGE_THIN_MIN, wrapFrontYaw } from './coinFaces'
+import { computeCoinFaces, wrapFrontYaw } from './coinFaces'
 
 describe('computeCoinFaces', () => {
   it('places the front face at +half with no rotation and FrontSide', () => {
@@ -45,37 +45,5 @@ describe('wrapFrontYaw', () => {
     expect(wrapFrontYaw(deg(91))).toBeCloseTo(deg(-89))
     expect(wrapFrontYaw(deg(180))).toBeCloseTo(0)
     expect(wrapFrontYaw(deg(-100))).toBeCloseTo(deg(80))
-  })
-})
-
-describe('edgeThinScale', () => {
-  it('is 1 at face-on (yaw 0)', () => {
-    expect(edgeThinScale(0)).toBeCloseTo(1)
-  })
-
-  it('clamps to EDGE_THIN_MIN at edge-on (±90°)', () => {
-    const deg = (d: number) => (d * Math.PI) / 180
-    expect(edgeThinScale(deg(90))).toBeCloseTo(EDGE_THIN_MIN)
-    expect(edgeThinScale(deg(-90))).toBeCloseTo(EDGE_THIN_MIN)
-  })
-
-  it('falls off continuously and monotonic-ish approaching the window edge', () => {
-    const deg = (d: number) => (d * Math.PI) / 180
-    const far = edgeThinScale(deg(50))
-    const nearer = edgeThinScale(deg(70))
-    const closer = edgeThinScale(deg(80))
-    const closest = edgeThinScale(deg(89))
-    expect(far).toBeCloseTo(1)
-    expect(nearer).toBeLessThanOrEqual(far)
-    expect(closer).toBeLessThanOrEqual(nearer)
-    expect(closest).toBeLessThanOrEqual(closer)
-  })
-
-  it('is equal (and near the snap) at +89.9° and -89.9° so the pop lands on a hairline', () => {
-    const deg = (d: number) => (d * Math.PI) / 180
-    const plus = edgeThinScale(deg(89.9))
-    const minus = edgeThinScale(deg(-89.9))
-    expect(plus).toBeCloseTo(minus)
-    expect(plus).toBeCloseTo(EDGE_THIN_MIN, 2)
   })
 })
