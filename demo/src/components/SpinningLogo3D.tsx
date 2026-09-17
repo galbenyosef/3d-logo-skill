@@ -9,7 +9,7 @@ import nightHdrUrl from '../assets/hdri/dikhololo_night_1k.hdr?url'
 import dawnHdrUrl from '../assets/hdri/kiara_1_dawn_1k.hdr?url'
 import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
-import { computeCoinFaces, wrapFrontYaw } from '../lib/coinFaces'
+import { computeCoinFaces, edgeThinScale, wrapFrontYaw } from '../lib/coinFaces'
 import { stepSpin, type SpinState } from '../lib/dragSpin'
 import {
   applyBrightnessThreshold,
@@ -162,8 +162,10 @@ function Coin({
     )
     d.pendingDx = 0
     spinRef.current = spin
-    groupRef.current.rotation.y = hasText ? wrapFrontYaw(spin.angle) : spin.angle
+    const yaw = hasText ? wrapFrontYaw(spin.angle) : spin.angle
+    groupRef.current.rotation.y = yaw
     groupRef.current.rotation.x = spin.tilt
+    groupRef.current.scale.z = hasText ? edgeThinScale(yaw) : 1
   })
   const { front, back } = useMemo(() => computeCoinFaces(thickness), [thickness])
   return (
