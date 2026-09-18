@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BackSide, FrontSide } from 'three'
-import { computeCoinFaces, wrapFrontYaw } from './coinFaces'
+import { SEAM_WINDOW, computeCoinFaces, computeSeamLayout, seamShare } from './coinFaces'
 
 describe('computeCoinFaces', () => {
   it('places the front face at +half with no rotation and FrontSide', () => {
@@ -37,13 +37,64 @@ describe('computeCoinFaces', () => {
   })
 })
 
-describe('wrapFrontYaw', () => {
-  it('keeps the front face toward the camera, snapping only at edge-on', () => {
-    const deg = (d: number) => (d * Math.PI) / 180
-    expect(wrapFrontYaw(deg(45))).toBeCloseTo(deg(45))
-    expect(wrapFrontYaw(deg(89))).toBeCloseTo(deg(89))
-    expect(wrapFrontYaw(deg(91))).toBeCloseTo(deg(-89))
-    expect(wrapFrontYaw(deg(180))).toBeCloseTo(0)
-    expect(wrapFrontYaw(deg(-100))).toBeCloseTo(deg(80))
+const deg = (d: number) => (d * Math.PI) / 180
+
+describe('seamShare', () => {
+  it('gives the side facing the camera the whole thickness', () => {
+    expect(seamShare(0)).toBe(1)
+    expect(seamShare(deg(55))).toBe(1)
+    expect(seamShare(deg(125))).toBe(0)
+    expect(seamShare(deg(180))).toBe(0)
+    expect(seamShare(deg(-40))).toBe(1)
+  })
+
+  it('splits the thickness evenly at edge-on, from either direction', () => {
+    expect(seamShare(deg(90))).toBeCloseTo(0.5)
+    expect(seamShare(deg(270))).toBeCloseTo(0.5)
+  })
+
+  it('never jumps: a 1° step moves the seam by a few percent at most (issue #53)', () => {
+    let worst = 0
+    for (let d = 0; d < 360; d++) worst = Math.max(worst, Math.abs(seamShare(deg(d + 1)) - seamShare(deg(d))))
+    expect(worst).toBeLessThan(0.05)
+  })
+
+  it('is flat where the window opens, so the seam starts moving gently', () => {
+    const open = Math.acos(SEAM_WINDOW)
+    expect(seamShare(open - deg(1))).toBe(1)
+    expect(1 - seamShare(open + deg(1))).toBeLessThan(0.005)
+  })
+})
+
+describe('computeSeamLayout', () => {
+  it('front owns the full thickness when share is 1; the back and caps are hidden', () => {
+    const l = computeSeamLayout(1, 0.45)
+    expect(l.front).toEqual({ visible: true, scaleZ: 1, positionZ: 0 })
+    expect(l.back.visible).toBe(false)
+    expect(l.back.scaleZ).toBeGreaterThan(0) // never a singular matrix
+    expect(l.capsVisible).toBe(false)
+    expect(l.seamZ).toBeCloseTo(-0.225)
+  })
+
+  it('mirrors that when share is 0', () => {
+    const l = computeSeamLayout(0, 0.45)
+    expect(l.front.visible).toBe(false)
+    expect(l.front.scaleZ).toBeGreaterThan(0)
+    expect(l.back.visible).toBe(true)
+    expect(l.back.scaleZ).toBe(1)
+    expect(l.back.positionZ).toBeCloseTo(0)
+    expect(l.seamZ).toBeCloseTo(0.225)
+  })
+
+  it('at an even split the two rims meet at z = 0 and tile the thickness exactly', () => {
+    const t = 0.45
+    const l = computeSeamLayout(0.5, t)
+    expect(l.seamZ).toBeCloseTo(0)
+    expect(l.capsVisible).toBe(true)
+    // front spans [seamZ, +half], back spans [-half, seamZ]
+    expect(l.front.positionZ - (l.front.scaleZ * t) / 2).toBeCloseTo(l.seamZ)
+    expect(l.front.positionZ + (l.front.scaleZ * t) / 2).toBeCloseTo(t / 2)
+    expect(l.back.positionZ + (l.back.scaleZ * t) / 2).toBeCloseTo(l.seamZ)
+    expect(l.back.positionZ - (l.back.scaleZ * t) / 2).toBeCloseTo(-t / 2)
   })
 })

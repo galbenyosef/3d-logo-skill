@@ -1,7 +1,7 @@
 import { Component, Suspense, useMemo, useRef, useState, type MutableRefObject, type PointerEvent, type ReactNode } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, Lightformer, useTexture } from '@react-three/drei'
-import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, SRGBColorSpace, Vector2 } from 'three'
+import { BackSide, BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, FrontSide, type Group, LinearSRGBColorSpace, type Mesh, type Side, SRGBColorSpace, Vector2 } from 'three'
 import studioHdrUrl from '../assets/hdri/studio_small_03_1k.hdr?url'
 import warehouseHdrUrl from '../assets/hdri/empty_warehouse_01_1k.hdr?url'
 import cityHdrUrl from '../assets/hdri/potsdamer_platz_1k.hdr?url'
@@ -9,7 +9,7 @@ import nightHdrUrl from '../assets/hdri/dikhololo_night_1k.hdr?url'
 import dawnHdrUrl from '../assets/hdri/kiara_1_dawn_1k.hdr?url'
 import sunsetHdrUrl from '../assets/hdri/venice_sunset_1k.hdr?url'
 import { buildRim } from '../lib/rimGeometry'
-import { computeCoinFaces, wrapFrontYaw } from '../lib/coinFaces'
+import { computeCoinFaces, computeSeamLayout, seamShare } from '../lib/coinFaces'
 import { stepSpin, type SpinState } from '../lib/dragSpin'
 import {
   applyBrightnessThreshold,
@@ -56,6 +56,8 @@ interface DragRef {
 interface LogoAssets {
   colorTexture: CanvasTexture
   normalMap: CanvasTexture
+  /** White where the logo is opaque — cuts the text-logo seam caps to the logo's shape. */
+  maskTexture: CanvasTexture
   rimGeometry: BufferGeometry
   rimColor: string
   rimEmissive: string
@@ -128,7 +130,19 @@ function useLogoAssets(logoUrl: string, thickness: number): LogoAssets {
     const rimGeometry = buildRim(outlines, PLANE_SIZE, thickness)
     const { color, emissive } = pickRimPalette(d)
 
-    return { colorTexture, normalMap, rimGeometry, rimColor: color, rimEmissive: emissive }
+    // Logo-shaped white mask for the back-to-back seam caps (SKILL.md 2d).
+    const maskCanvas = document.createElement('canvas')
+    maskCanvas.width = width
+    maskCanvas.height = height
+    const mCtx = maskCanvas.getContext('2d')!
+    mCtx.drawImage(canvas, 0, 0)
+    mCtx.globalCompositeOperation = 'source-in'
+    mCtx.fillStyle = '#ffffff'
+    mCtx.fillRect(0, 0, width, height)
+    const maskTexture = new CanvasTexture(maskCanvas)
+    maskTexture.colorSpace = SRGBColorSpace
+
+    return { colorTexture, normalMap, maskTexture, rimGeometry, rimColor: color, rimEmissive: emissive }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- thickness rebuilds
     // only the rim, not the (expensive) texture/normal-map extraction; both
     // are re-derived here regardless since they share this one memo.
@@ -149,8 +163,11 @@ function Coin({
   drag: MutableRefObject<DragRef>
 }) {
   const groupRef = useRef<Group>(null)
+  const frontRimRef = useRef<Mesh>(null)
+  const backRimRef = useRef<Mesh>(null)
+  const capsRef = useRef<Group>(null)
   const spinRef = useRef<SpinState>({ angle: 0, velocity: 0, tilt: 0 })
-  const { colorTexture, normalMap, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl, thickness)
+  const { colorTexture, normalMap, maskTexture, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl, thickness)
   const normalScale = useMemo(() => new Vector2(EMBOSS_STRENGTH, EMBOSS_STRENGTH), [])
   useFrame((_, delta) => {
     if (!groupRef.current) return
@@ -162,58 +179,118 @@ function Coin({
     )
     d.pendingDx = 0
     spinRef.current = spin
-    groupRef.current.rotation.y = hasText ? wrapFrontYaw(spin.angle) : spin.angle
+    // One continuous spin for every logo — text logos no longer wrap/snap the
+    // yaw (issue #53); they are built back to back instead, see below.
+    groupRef.current.rotation.y = spin.angle
     groupRef.current.rotation.x = spin.tilt
+
+    // Text logos: slide the seam between the two glued logos so the side
+    // facing the camera owns the whole thickness. Both rims are full-thickness
+    // geometry scaled in z — the walls' normals lie in the xy plane, so the
+    // scale never bends the shading.
+    const front = frontRimRef.current
+    const back = backRimRef.current
+    const caps = capsRef.current
+    if (front && back && caps) {
+      const layout = computeSeamLayout(seamShare(spin.angle), thickness)
+      front.visible = layout.front.visible
+      front.scale.z = layout.front.scaleZ
+      front.position.z = layout.front.positionZ
+      back.visible = layout.back.visible
+      back.scale.z = layout.back.scaleZ
+      back.position.z = layout.back.positionZ
+      caps.visible = layout.capsVisible
+      caps.position.z = layout.seamZ
+    }
   })
   const { front, back } = useMemo(() => computeCoinFaces(thickness), [thickness])
+  const faceMaterial = (side: Side) => (
+    <meshStandardMaterial
+      map={colorTexture}
+      normalMap={normalMap}
+      normalScale={normalScale}
+      metalness={0.15}
+      roughness={0.35}
+      envMapIntensity={0.4}
+      side={side}
+      transparent
+      depthWrite={false}
+    />
+  )
+  // `mask` turns the rim metal into a seam cap: a plane cut to the logo's shape.
+  const rimMaterial = (mask?: CanvasTexture, side: Side = DoubleSide) => (
+    <meshStandardMaterial
+      color={rimColor}
+      metalness={1.0}
+      roughness={0.12}
+      emissive={rimEmissive}
+      emissiveIntensity={0.15}
+      envMapIntensity={1.5}
+      map={mask ?? null}
+      alphaTest={mask ? 0.5 : 0}
+      side={side}
+    />
+  )
   return (
     <group ref={groupRef}>
       <mesh position={front.position} rotation-y={front.rotationY}>
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
-        <meshStandardMaterial
-          map={colorTexture}
-          normalMap={normalMap}
-          normalScale={normalScale}
-          metalness={0.15}
-          roughness={0.35}
-          envMapIntensity={0.4}
-          side={front.side}
-          transparent
-          depthWrite={false}
-        />
+        {faceMaterial(front.side)}
       </mesh>
-      {/*
-        Back face = the same plane seen from behind (BackSide, no Y rotation),
-        so its silhouette is exactly the rim's outline — SKILL.md 2d and
-        computeCoinFaces (../lib/coinFaces.ts). Rotating it by PI made the
-        logo "readable" from behind but mirrored its outline against the
-        rim, which showed on every asymmetric logo (issue #11).
-      */}
-      <mesh position={back.position} rotation-y={back.rotationY}>
-        <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
-        <meshStandardMaterial
-          map={colorTexture}
-          normalMap={normalMap}
-          normalScale={normalScale}
-          metalness={0.15}
-          roughness={0.35}
-          envMapIntensity={0.4}
-          side={back.side}
-          transparent
-          depthWrite={false}
-        />
-      </mesh>
-      <mesh geometry={rimGeometry}>
-        <meshStandardMaterial
-          color={rimColor}
-          metalness={1.0}
-          roughness={0.12}
-          emissive={rimEmissive}
-          emissiveIntensity={0.15}
-          envMapIntensity={1.5}
-          side={DoubleSide}
-        />
-      </mesh>
+      {hasText ? (
+        <>
+          {/*
+            Text logo = two logos glued BACK TO BACK (SKILL.md 2d). The back one
+            is the whole logo mirrored in x — face, outline and rim together,
+            all with scale x = -1 — so from behind it reads correctly AND its
+            silhouette matches its own rim. The back face stays the proven
+            issue-#11 plane (same orientation, BackSide); do NOT turn it by PI
+            with FrontSide instead — that mesh lights differently from the
+            front (measured: duller, angle-dependent).
+          */}
+          <mesh position={back.position} scale={[-1, 1, 1]}>
+            <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
+            {faceMaterial(back.side)}
+          </mesh>
+          <mesh ref={frontRimRef} geometry={rimGeometry}>
+            {rimMaterial()}
+          </mesh>
+          <mesh ref={backRimRef} geometry={rimGeometry} scale={[-1, 1, 1]} visible={false}>
+            {rimMaterial()}
+          </mesh>
+          {/*
+            Where the outline and its mirror differ, the seam would open into
+            the hollow rim. Two caps close it: the logo's shape seen from
+            behind (BackSide), and the mirrored shape seen from the front
+            (FrontSide, scale x = -1). Each is single-sided, so they never z-fight.
+          */}
+          <group ref={capsRef} visible={false}>
+            <mesh>
+              <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
+              {rimMaterial(maskTexture, BackSide)}
+            </mesh>
+            <mesh scale={[-1, 1, 1]}>
+              <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
+              {rimMaterial(maskTexture, FrontSide)}
+            </mesh>
+          </group>
+        </>
+      ) : (
+        <>
+          {/*
+            Back face = the same plane seen from behind (BackSide, no Y rotation),
+            so its silhouette is exactly the rim's outline — SKILL.md 2d and
+            computeCoinFaces (../lib/coinFaces.ts). Rotating it by PI made the
+            logo "readable" from behind but mirrored its outline against the
+            rim, which showed on every asymmetric logo (issue #11).
+          */}
+          <mesh position={back.position} rotation-y={back.rotationY}>
+            <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
+            {faceMaterial(back.side)}
+          </mesh>
+          <mesh geometry={rimGeometry}>{rimMaterial()}</mesh>
+        </>
+      )}
     </group>
   )
 }
@@ -273,7 +350,7 @@ export interface SpinningLogo3DProps {
    * nothing or dwarfs the logo faces. Defaults to the original 0.45.
    */
   thickness?: number
-  /** Logo contains text: never show the (mirrored) back face — see wrapFrontYaw. */
+  /** Logo contains text: built back to back so it reads correctly from both sides — see seamShare. */
   hasText?: boolean
 }
 
