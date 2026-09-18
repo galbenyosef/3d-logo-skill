@@ -33,11 +33,60 @@ export function computeCoinFaces(thickness: number): CoinFaces {
 }
 
 /**
- * Text-logo yaw: wraps an accumulated spin angle into [-PI/2, PI/2) so the
- * front face always faces the camera. The coin snaps 180° exactly when it is
- * edge-on (both edge-on views are identical), so text never reads mirrored
- * and the back face's true-mirror silhouette is never shown.
+ * Text logos are built BACK TO BACK: a second, x-mirrored logo (face, outline
+ * and rim together) is glued behind the first, so text reads correctly from
+ * both sides and the coin spins continuously. The old approach — wrapping the
+ * yaw so the front always faced the camera — snapped 180° at edge-on, which
+ * swaps the rim wall in view and visibly pops on any logo that is not
+ * perfectly symmetric (issue #53).
+ *
+ * The seam between the two logos SLIDES with the turn: whichever side faces
+ * the camera owns the whole thickness, so only its own outline shows behind
+ * it. The two share the thickness only while |cos yaw| < SEAM_WINDOW.
  */
-export function wrapFrontYaw(angle: number): number {
-  return ((((angle + Math.PI / 2) % Math.PI) + Math.PI) % Math.PI) - Math.PI / 2
+export const SEAM_WINDOW = 0.34 // ~70°–110°: the hand-over window around edge-on
+export const SEAM_MIN = 0.002 // a side thinner than this share is hidden, never scaled to 0
+
+/**
+ * The FRONT logo's share of the thickness for a yaw (1 = all of it, 0 = none).
+ * An odd smoothstep in cos(yaw): flat at both ends of the window and exactly
+ * 0.5 at edge-on, so the seam starts and stops gently and no single frame
+ * changes the rim's shape at once.
+ */
+export function seamShare(yaw: number): number {
+  const s = Math.min(Math.max(Math.cos(yaw) / SEAM_WINDOW, -1), 1)
+  return 0.5 + 0.5 * s * (1.5 - 0.5 * s * s)
+}
+
+export interface SeamSide {
+  visible: boolean
+  /** z scale for a rim built at FULL thickness, centred on z = 0. */
+  scaleZ: number
+  positionZ: number
+}
+
+export interface SeamLayout {
+  front: SeamSide
+  back: SeamSide
+  /** z of the seam — where the two mid-plane caps sit. */
+  seamZ: number
+  /** Caps are only needed while both sides have thickness. */
+  capsVisible: boolean
+}
+
+/** Where each side's rim and the seam caps go for a given share (see seamShare). */
+export function computeSeamLayout(share: number, thickness: number): SeamLayout {
+  const half = thickness / 2
+  const seamZ = half - share * thickness
+  const front: SeamSide = {
+    visible: share > SEAM_MIN,
+    scaleZ: Math.max(share, SEAM_MIN),
+    positionZ: (half + seamZ) / 2,
+  }
+  const back: SeamSide = {
+    visible: share < 1 - SEAM_MIN,
+    scaleZ: Math.max(1 - share, SEAM_MIN),
+    positionZ: (seamZ - half) / 2,
+  }
+  return { front, back, seamZ, capsVisible: front.visible && back.visible }
 }
