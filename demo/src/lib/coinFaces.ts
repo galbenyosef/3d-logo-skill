@@ -33,25 +33,26 @@ export function computeCoinFaces(thickness: number): CoinFaces {
 }
 
 /**
- * Text logos are built BACK TO BACK: a second, x-mirrored logo (face, outline
- * and rim together) is glued behind the first, so text reads correctly from
- * both sides and the coin spins continuously. The old approach — wrapping the
- * yaw so the front always faced the camera — snapped 180° at edge-on, which
- * swaps the rim wall in view and visibly pops on any logo that is not
- * perfectly symmetric (issue #53).
+ * Text logos: the back face is the art mirrored in x so the text reads
+ * correctly from behind, and the coin spins continuously. Parts that land on
+ * their own rim when mirrored keep ONE rim (./sidedParts); only the other
+ * parts get a second, mirrored rim. The seam between a sided part's two rims
+ * SLIDES with the turn: the rim facing the camera owns the whole thickness,
+ * and the two share it only in a narrow window right at edge-on.
  *
- * The seam between the two logos SLIDES with the turn: whichever side faces
- * the camera owns the whole thickness, so only its own outline shows behind
- * it. The two share the thickness only while |cos yaw| < SEAM_WINDOW.
+ * Tried and dropped: wrapping the yaw so the front always faced the camera
+ * (the 180° snap at edge-on swaps the rim wall in view and pops, issue #53),
+ * and mirroring the WHOLE rim with a wide window (its seam showed on the big
+ * walls exactly when they were in view).
  */
-export const SEAM_WINDOW = 0.34 // ~70°–110°: the hand-over window around edge-on
-export const SEAM_MIN = 0.002 // a side thinner than this share is hidden, never scaled to 0
+export const SEAM_WINDOW = 0.12 // |cos yaw| below this (~83°–97°): a sided part's two rims share the thickness
+export const SEAM_MIN = 0.002 // a rim thinner than this share is hidden, never scaled to 0
 
 /**
- * The FRONT logo's share of the thickness for a yaw (1 = all of it, 0 = none).
+ * The FRONT rim's share of the thickness for a yaw (1 = all of it, 0 = none).
  * An odd smoothstep in cos(yaw): flat at both ends of the window and exactly
  * 0.5 at edge-on, so the seam starts and stops gently and no single frame
- * changes the rim's shape at once.
+ * changes a wall's shape at once.
  */
 export function seamShare(yaw: number): number {
   const s = Math.min(Math.max(Math.cos(yaw) / SEAM_WINDOW, -1), 1)
@@ -65,28 +66,12 @@ export interface SeamSide {
   positionZ: number
 }
 
-export interface SeamLayout {
-  front: SeamSide
-  back: SeamSide
-  /** z of the seam — where the two mid-plane caps sit. */
-  seamZ: number
-  /** Caps are only needed while both sides have thickness. */
-  capsVisible: boolean
-}
-
-/** Where each side's rim and the seam caps go for a given share (see seamShare). */
-export function computeSeamLayout(share: number, thickness: number): SeamLayout {
+/** Where a sided part's front and back rims go for a given share (see seamShare). */
+export function computeSeamLayout(share: number, thickness: number): { front: SeamSide; back: SeamSide } {
   const half = thickness / 2
   const seamZ = half - share * thickness
-  const front: SeamSide = {
-    visible: share > SEAM_MIN,
-    scaleZ: Math.max(share, SEAM_MIN),
-    positionZ: (half + seamZ) / 2,
+  return {
+    front: { visible: share > SEAM_MIN, scaleZ: Math.max(share, SEAM_MIN), positionZ: (half + seamZ) / 2 },
+    back: { visible: share < 1 - SEAM_MIN, scaleZ: Math.max(1 - share, SEAM_MIN), positionZ: (seamZ - half) / 2 },
   }
-  const back: SeamSide = {
-    visible: share < 1 - SEAM_MIN,
-    scaleZ: Math.max(1 - share, SEAM_MIN),
-    positionZ: (seamZ - half) / 2,
-  }
-  return { front, back, seamZ, capsVisible: front.visible && back.visible }
 }
