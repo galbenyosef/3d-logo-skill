@@ -7,6 +7,11 @@ description: Create a 3D spinning coin/medal effect from any logo image using Re
 
 Generate a self-contained React component that renders any logo as a premium 3D spinning coin/medal with chrome edges and environment reflections.
 
+> **Inside a Ferdinand / Salikon / Systown app, don't generate this component.** Use the
+> `salikon-design` skill's `LandingHero` (`references/landing.md`, Recipe section): it is
+> this pipeline — hybrid text rim included — already ported, sized (56vh) and brightness-tuned
+> for that design system, air-gap safe. Everything below is for apps outside it.
+
 ## What it produces
 
 A `SpinningLogo3D.tsx` component that:
