@@ -15,7 +15,7 @@ A `SpinningLogo3D.tsx` component that:
 - Extracts the logo's exact perimeter from the alpha channel
 - Builds a chrome rim that follows the logo's actual outline shape
 - Renders the logo on BOTH faces, with the back face's outline matching the rim exactly (seen from behind it's the mirror image, as on a real stamped coin)
-- Text logos (`HAS_TEXT`) are built back to back, so the text reads correctly from BOTH sides while the coin keeps spinning continuously — no yaw snap, no pop
+- Text logos (`HAS_TEXT`) read correctly from BOTH sides while the coin keeps spinning continuously — no yaw snap, no pop, no seam on the big walls
 - Adds environment reflections for a premium chrome finish
 - Spins smoothly on the Y axis
 
@@ -39,7 +39,7 @@ file <path-to-logo>
 ```
 The extension may lie (e.g., a `.png` that's actually JPEG). This matters because JPEG has no alpha channel — the transparency must be generated at runtime.
 
-**Does the logo contain text?** Look at the image. If it has letters or numbers, set `HAS_TEXT = true` (ask the user if unsure). The back face is a true mirror image (see 2d), so text would read backwards; `HAS_TEXT` builds the coin back to back instead (2d), so it reads correctly from both sides.
+**Does the logo contain text?** Look at the image. If it has letters or numbers, set `HAS_TEXT = true` (ask the user if unsure). The back face is a true mirror image (see 2d), so text would read backwards; `HAS_TEXT` mirrors the back and gives only the parts that need it a mirrored rim (2d), so it reads correctly from both sides.
 
 ### Step 2: Generate the component
 
@@ -447,40 +447,112 @@ Two `PlaneGeometry` faces (front + back) with the transparent texture. The back 
 
 **Critical**: Do NOT rotate the back face `[0, PI, 0]`, and do NOT flip its UVs. Either one makes the back logo "readable" but mirrors its silhouette against the rim, which keeps the front outline — so on any asymmetric logo the rim visibly traces a reversed shape behind the face (issue #11). The back face must be the same plane as the front, just seen from behind: same position/rotation, pushed to `-half`, `side={BackSide}`.
 
-**Text logos (`HAS_TEXT = true`)**: build the coin **back to back** — a second copy of the whole logo, mirrored in x (`scale x = -1`: face, outline and rim together), glued behind the first. From behind, the mirrored copy reads correctly AND its silhouette matches its own rim, and the coin spins continuously like any other logo.
+**Text logos (`HAS_TEXT = true`)**: the coin spins continuously like any other logo, and the back face is mirrored in x (`scale={[-1, 1, 1]}`) so the text reads correctly from behind. The rim is split by **how symmetric each part is**:
 
-**Do NOT wrap the yaw** so the front always faces the camera (the old rule here). That snaps the coin 180° at edge-on, which swaps the rim wall in view — the logo's left wall for its right wall — and visibly pops on any logo that isn't perfectly symmetric (issue #53). Thinning the coin toward the snap, fading the faces, or easing through edge-on only trade the pop for another artefact.
+- A part that coincides with its own mirror image — a symmetric emblem, a centred letter — lands on its own rim again when mirrored. It keeps **ONE rim that never changes**.
+- A part that doesn't — most letters of a wordmark, any asymmetric shape — would sit on another part's walls from behind ("MIMER" over walls shaped "ЯƎMIM"). Only those parts get a **second, mirrored rim** that takes over in a narrow window right at edge-on, on small walls where the hand-over can't be seen.
 
-**Slide the seam.** With a fixed seam at mid-thickness, the back copy's mirrored outline sticks out behind the front at every angle — a doubled silhouette. Instead the side facing the camera owns the WHOLE thickness, and the two only share it in a short window around edge-on (`SEAM_WINDOW`), where the hand-over is a continuous wipe:
+What NOT to do, each tried and measured:
+- **Wrap the yaw** so the front always faces the camera: the 180° snap at edge-on swaps the rim wall in view and pops on every logo that isn't perfectly symmetric (issue #53). Thinning the coin, fading the faces or easing through edge-on only trade the pop for another artefact.
+- **Mirror the WHOLE rim** with a sliding seam: the seam shows on the big walls exactly when they're in view (~70°–110°).
+
+Symmetry is intersection-over-union of each traced part (2b) with its own mirror, sampled on a grid — a bounding-box test is not enough, because a centred but asymmetric emblem has a centred bbox:
 
 ```tsx
-const SEAM_WINDOW = 0.34 // |cos yaw| below this (~70°–110°): the two sides share the thickness
-const SEAM_MIN = 0.002   // a side thinner than this share is hidden — never scale to exactly 0
+const MIRROR_OVERLAP_MIN = 0.93 // a part overlapping its own mirror image at least this much keeps one rim
+const OVERLAP_GRID = 72
 
-// FRONT logo's share of the thickness: 1 facing the camera, 0 facing away,
-// an odd smoothstep through 0.5 at edge-on (flat at both ends — no frame jumps).
+function inside(loop: Point[], x: number, y: number): boolean {
+  let hit = false
+  for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
+    const a = loop[i], b = loop[j]
+    if (a[1] > y !== b[1] > y && x < ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1]) + a[0]) hit = !hit
+  }
+  return hit
+}
+
+function mirrorOverlap(loop: Point[]): number {
+  let maxX = 0, minY = Infinity, maxY = -Infinity
+  for (const [x, y] of loop) { maxX = Math.max(maxX, Math.abs(x)); minY = Math.min(minY, y); maxY = Math.max(maxY, y) }
+  if (!(maxX > 0) || !(maxY > minY)) return 0
+  let both = 0, either = 0
+  for (let gy = 0; gy < OVERLAP_GRID; gy++) {
+    const y = minY + ((gy + 0.5) / OVERLAP_GRID) * (maxY - minY)
+    for (let gx = 0; gx < OVERLAP_GRID; gx++) {
+      const x = -maxX + ((gx + 0.5) / OVERLAP_GRID) * 2 * maxX
+      const a = inside(loop, x, y), b = inside(loop, -x, y)
+      if (a || b) either++
+      if (a && b) both++
+    }
+  }
+  return either ? both / either : 0
+}
+
+// In useLogoAssets, after extractPerimeter:
+const centred = HAS_TEXT ? outlines.filter((l) => mirrorOverlap(l) >= MIRROR_OVERLAP_MIN) : outlines
+const sided = HAS_TEXT ? outlines.filter((l) => mirrorOverlap(l) < MIRROR_OVERLAP_MIN) : []
+const rimGeometry = buildRim(centred, PLANE_SIZE, THICKNESS)
+const sidedRimGeometry = sided.length ? buildRim(sided, PLANE_SIZE, THICKNESS) : null
+```
+
+Measured for reference: the Mimer emblem scores 0.97 (centred), its letters 0.00–0.42 (sided); Firebird 0.73, Manta 0.43, Koi 0.29 (all sided — their whole rim is mirrored, still continuous).
+
+For the sided rims, the rim facing the camera owns the whole thickness and the seam slides across in the narrow window:
+
+```tsx
+const SEAM_WINDOW = 0.12 // |cos yaw| below this (~83°–97°): a sided part's two rims share the thickness
+const SEAM_MIN = 0.002   // a rim thinner than this share is hidden — never scale to exactly 0
+
+// FRONT rim's share: 1 facing the camera, 0 facing away, an odd smoothstep
+// through 0.5 at edge-on (flat at both ends — no frame jumps).
 function seamShare(yaw: number): number {
   const s = Math.min(Math.max(Math.cos(yaw) / SEAM_WINDOW, -1), 1)
   return 0.5 + 0.5 * s * (1.5 - 0.5 * s * s)
 }
 ```
 
-(Import `type Mesh` and `type Side` from `three` for the refs and material helpers below.) Both rims use the SAME full-thickness `rimGeometry`, scaled in z each frame (the walls' normals lie in the xy plane, so the scale never bends the shading). Where the outline and its mirror differ, the seam would open into the hollow rim, so two single-sided caps — planes cut to the logo's shape by a white alpha mask, in the rim's metal — close it.
+A centred part's mirrored art is still a few pixels off its rim wherever the part isn't perfectly symmetric (≤7% at the 0.93 bar). A **back plate** — a plane in the rim's metal, cut to the centred parts' shape by an alpha mask, just inside the back face — turns that offset into a badge edge instead of a view into the hollow rim. Build the mask by filling the centred outlines and THEN keeping only where the logo is opaque: the other way round (`destination-in` with the outline path) is a no-op in the browser when there are no centred parts, and the whole logo becomes the plate.
+
+```tsx
+const BACK_PLATE_INSET = 0.004
+
+// In useLogoAssets, once the colour canvas is final:
+const maskCanvas = document.createElement('canvas')
+maskCanvas.width = canvas.width
+maskCanvas.height = canvas.height
+const mCtx = maskCanvas.getContext('2d')!
+mCtx.fillStyle = '#ffffff'
+mCtx.beginPath()
+for (const loop of centred) {
+  loop.forEach(([x, y], i) => {
+    const px = (x + 0.5) * canvas.width, py = (0.5 - y) * canvas.height
+    if (i === 0) mCtx.moveTo(px, py)
+    else mCtx.lineTo(px, py)
+  })
+  mCtx.closePath()
+}
+mCtx.fill()
+mCtx.globalCompositeOperation = 'destination-in'
+mCtx.drawImage(canvas, 0, 0)
+const maskTexture = new CanvasTexture(maskCanvas)
+maskTexture.colorSpace = SRGBColorSpace
+```
+
+(Import `type Mesh` and `type Side` from `three` for the refs and material helpers below.)
 
 ```tsx
 function Coin() {
   const groupRef = useRef<Group>(null)
-  const frontRimRef = useRef<Mesh>(null)
-  const backRimRef = useRef<Mesh>(null)
-  const capsRef = useRef<Group>(null)
+  const frontSidedRef = useRef<Mesh>(null)
+  const backSidedRef = useRef<Mesh>(null)
   const angle = useRef(0)
-  const { colorTexture, normalMap, maskTexture, rimGeometry } = useLogoAssets()
+  const { colorTexture, normalMap, maskTexture, rimGeometry, sidedRimGeometry } = useLogoAssets()
   useFrame((_, delta) => {
     if (!groupRef.current) return
     angle.current += Math.min(delta, 0.1) * SPIN_SPEED
     groupRef.current.rotation.y = angle.current // continuous for EVERY logo — never wrapped
-    const front = frontRimRef.current, back = backRimRef.current, caps = capsRef.current
-    if (front && back && caps) { // HAS_TEXT only: slide the seam
+    const front = frontSidedRef.current, back = backSidedRef.current
+    if (front && back) { // text logo with sided parts: slide their seam
       const share = seamShare(angle.current)
       const seamZ = THICKNESS / 2 - share * THICKNESS
       front.visible = share > SEAM_MIN
@@ -489,8 +561,6 @@ function Coin() {
       back.visible = share < 1 - SEAM_MIN
       back.scale.z = Math.max(1 - share, SEAM_MIN)
       back.position.z = (seamZ - THICKNESS / 2) / 2
-      caps.visible = front.visible && back.visible
-      caps.position.z = seamZ
     }
   })
   const half = THICKNESS / 2
@@ -507,10 +577,12 @@ function Coin() {
       depthWrite={false}
     />
   )
-  // `mask` turns the rim metal into a seam cap: a plane cut to the logo's shape.
+  // Satin, not mirror: a mirror finish reflects the environment's dark floor
+  // (a dark rim) and its sharp reflections sparkle and band as the walls turn.
+  // `mask` turns the rim metal into the text logo's back plate.
   const rim = (mask?: CanvasTexture, side: Side = DoubleSide) => (
     <meshStandardMaterial
-      color="#8ecae6" metalness={1.0} roughness={0.12}
+      color="#8ecae6" metalness={0.95} roughness={0.26}
       emissive="#06b6d4" emissiveIntensity={0.15}
       envMapIntensity={1.5}
       map={mask ?? null} alphaTest={mask ? 0.5 : 0} side={side}
@@ -522,57 +594,32 @@ function Coin() {
         <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
         {face(FrontSide)}
       </mesh>
+      {/* Same plane seen from behind; a text logo mirrors it so the text reads. */}
+      <mesh position={[0, 0, -half]} scale={[HAS_TEXT ? -1 : 1, 1, 1]}>
+        <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
+        {face(BackSide)}
+      </mesh>
       {HAS_TEXT ? (
+        <mesh position={[0, 0, -half + BACK_PLATE_INSET]}>
+          <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
+          {rim(maskTexture, BackSide)}
+        </mesh>
+      ) : null}
+      <mesh geometry={rimGeometry}>{rim()}</mesh>
+      {sidedRimGeometry ? (
         <>
-          {/* The whole logo mirrored in x: same back plane as below (BackSide), scale x = -1. */}
-          <mesh position={[0, 0, -half]} scale={[-1, 1, 1]}>
-            <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
-            {face(BackSide)}
-          </mesh>
-          <mesh ref={frontRimRef} geometry={rimGeometry}>{rim()}</mesh>
-          <mesh ref={backRimRef} geometry={rimGeometry} scale={[-1, 1, 1]} visible={false}>{rim()}</mesh>
-          <group ref={capsRef} visible={false}>
-            <mesh>
-              <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
-              {rim(maskTexture, BackSide)}
-            </mesh>
-            <mesh scale={[-1, 1, 1]}>
-              <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
-              {rim(maskTexture, FrontSide)}
-            </mesh>
-          </group>
+          <mesh ref={frontSidedRef} geometry={sidedRimGeometry}>{rim()}</mesh>
+          <mesh ref={backSidedRef} geometry={sidedRimGeometry} scale={[-1, 1, 1]} visible={false}>{rim()}</mesh>
         </>
-      ) : (
-        <>
-          {/* Same plane seen from behind: silhouette matches the rim exactly. */}
-          <mesh position={[0, 0, -half]}>
-            <planeGeometry args={[PLANE_SIZE, PLANE_SIZE]} />
-            {face(BackSide)}
-          </mesh>
-          <mesh geometry={rimGeometry}>{rim()}</mesh>
-        </>
-      )}
+      ) : null}
     </group>
   )
 }
 ```
 
-The cap mask is one extra canvas in `useLogoAssets` (2a), made after the colour canvas is final — white wherever the logo is opaque:
+Set `anisotropy = 16` on the colour texture and the normal map (three clamps it to the GPU): it keeps the face sharp at grazing angles, the last degrees before the flip.
 
-```tsx
-const maskCanvas = document.createElement('canvas')
-maskCanvas.width = canvas.width
-maskCanvas.height = canvas.height
-const mCtx = maskCanvas.getContext('2d')!
-mCtx.drawImage(canvas, 0, 0)
-mCtx.globalCompositeOperation = 'source-in'
-mCtx.fillStyle = '#ffffff'
-mCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height)
-const maskTexture = new CanvasTexture(maskCanvas)
-maskTexture.colorSpace = SRGBColorSpace
-```
-
-**Trade-off to tell the user:** inside the edge-on window the rim is briefly half one outline, half its mirror. On a near-symmetric logo (most wordmark-under-emblem logos) that is invisible; on a strongly asymmetric one the two halves visibly differ for that moment — still continuous, never a pop.
+**Trade-off to tell the user:** inside the ~83°–97° window a sided part's wall is briefly half one outline, half its mirror. On letters that's a few pixels on small walls; a logo that is ONE strongly asymmetric shape (Firebird) mirrors its whole rim, so the hand-over is visible on the big wall for those few degrees — continuous, never a pop.
 
 #### 2e. Canvas and lighting
 
@@ -652,10 +699,12 @@ Place these at the top of the file so the user can easily adjust:
 | `BG_THRESHOLD` | 18 | Brightness cutoff for the dark-background fallback (0-255), used only when no solid border is detected |
 | `BG_TOLERANCE` | 24 | Max per-channel colour difference for a pixel to count as background, in both border detection and the flood fill (0-255) |
 | `BORDER_MATCH_RATIO` | 0.85 | Fraction of border pixels that must agree on a colour for it to count as a solid background |
-| `EMBOSS_STRENGTH` | 1.5 | Normal map intensity (0 = flat, 3+ = deep emboss) |
-| `HAS_TEXT` | false | `true` for logos with text — coin is built back to back, text reads correctly from both sides |
-| `SEAM_WINDOW` | 0.34 | Text logos: `\|cos yaw\|` below this (~70°–110°) is where the two glued logos share the thickness |
-| `SEAM_MIN` | 0.002 | Text logos: a side thinner than this share of the thickness is hidden instead of scaled to 0 |
+| `EMBOSS_STRENGTH` | 1.1 | Normal map intensity (0 = flat, 3+ = deep emboss). Higher values make the embossed edges crawl with highlights while spinning |
+| `HAS_TEXT` | false | `true` for logos with text — back is mirrored and non-symmetric parts get a mirrored rim, so text reads correctly from both sides |
+| `MIRROR_OVERLAP_MIN` | 0.93 | Text logos: a part overlapping its own mirror at least this much keeps one rim; below it gets a mirrored rim |
+| `SEAM_WINDOW` | 0.12 | Text logos: `\|cos yaw\|` below this (~83°–97°) is where a sided part's two rims share the thickness |
+| `BACK_PLATE_INSET` | 0.004 | Text logos: how far inside the back face the metal back plate sits |
+| `SEAM_MIN` | 0.002 | Text logos: a rim thinner than this share of the thickness is hidden instead of scaled to 0 |
 
 ### Step 5: Integration
 
@@ -670,10 +719,13 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 
 - **DO NOT use CircleGeometry** for the face — its UV mapping mirrors the texture. Always use PlaneGeometry.
 - **DO NOT flip UVs or rotate the back face by PI** — both mirror the back silhouette against the rim. The back face is the front plane moved to `-half` with `side={BackSide}`.
-- **Text logos need `HAS_TEXT = true`** — otherwise the back reads mirrored, like a real coin. Build the coin back to back (2d).
+- **Text logos need `HAS_TEXT = true`** — otherwise the back reads mirrored, like a real coin. Mirror the back and split the rim by symmetry (2d).
 - **DO NOT wrap/snap the yaw for text logos** — keeping the front toward the camera by snapping 180° at edge-on swaps which rim wall is in view and pops on every logo that isn't perfectly symmetric (issue #53). The two edge-on views are NOT identical.
-- **Mirror the back copy with `scale x = -1`, not a PI rotation** — the back face stays the same plane as the front with `side={BackSide}`, just scaled `[-1, 1, 1]` like its rim. A plane turned by PI with `FrontSide` looks right but lights differently from the front (measured: duller and angle-dependent).
+- **Mirror the back face with `scale x = -1`, not a PI rotation** — the back face stays the same plane as the front with `side={BackSide}`, just scaled `[-1, 1, 1]`. A plane turned by PI with `FrontSide` looks right but lights differently from the front (measured: duller and angle-dependent).
 - **Never scale a rim to exactly 0** — a singular matrix NaNs the normals. Clamp to `SEAM_MIN` and hide the mesh instead.
+- **DO NOT mirror the whole rim of a text logo** — only the parts that aren't their own mirror image. A whole-rim hand-over shows its seam on the big walls exactly when they're in view.
+- **Classify symmetry by mirror overlap, not by bounding box** — a centred but asymmetric emblem has a centred bbox; on a single rim its mirrored art misses the walls and the back plate shows as a big metal blob.
+- **Use a satin rim (roughness ~0.26), not mirror chrome (0.12)** — mirror chrome reflects the environment's dark floor (a dark rim) and its sharp reflections sparkle and band across the walls as the coin turns.
 - **Suspense MUST be inside `<Canvas>`** — R3F's `useTexture` suspends within its own reconciler. An outer Suspense won't catch it and the component will flash/disappear.
 - **Use `DoubleSide` on the rim material** — the perimeter winding creates mixed normal directions. DoubleSide ensures all faces render regardless.
 - **Use `depthWrite={false}`** on the transparent face materials — prevents z-fighting between front and back faces during rotation.
