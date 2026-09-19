@@ -1,5 +1,5 @@
-import { Component, Suspense, useMemo, useRef, useState, type MutableRefObject, type PointerEvent, type ReactNode } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Component, Suspense, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type PointerEvent, type ReactNode } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useTexture } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, type Mesh, type Side, SRGBColorSpace, Vector2 } from 'three'
 import studioHdrUrl from '../assets/hdri/studio_small_03_1k.hdr?url'
@@ -31,6 +31,10 @@ const THICKNESS = 0.45
 const SPIN_SPEED = 0.35
 const BG_THRESHOLD = 18
 const EMBOSS_STRENGTH = 1.1
+
+/** Half the visible height, in 3D units: the face (PLANE_SIZE) fills ~77% of the canvas, leaving
+ *  room for the corners as the coin turns. */
+const VIEW_HALF = 3.1
 
 // r/threejs launch feedback (u/BigDeadPixel): "can you change the thickness
 // of the coin?" — exposed as a prop instead of only the module constant.
@@ -262,6 +266,19 @@ const ENV_HDR_URLS: Record<EnvPreset, string> = {
   sunset: sunsetHdrUrl,
 }
 
+/** Orthographic, not perspective: with perspective the half turned toward you drew bigger than
+ *  the far half, so the coin looked like it leant in and out, and at a text logo's flip the
+ *  narrowing coin visibly shrank and jumped. Keeps the framing as the canvas resizes. */
+function FitOrthoCamera() {
+  const camera = useThree((s) => s.camera)
+  const height = useThree((s) => s.size.height)
+  useLayoutEffect(() => {
+    camera.zoom = height / 2 / VIEW_HALF
+    camera.updateProjectionMatrix()
+  }, [camera, height])
+  return null
+}
+
 function CoinEnvironment({ envPreset }: { envPreset: EnvPreset }) {
   return <Environment files={ENV_HDR_URLS[envPreset]} />
 }
@@ -340,7 +357,8 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickne
       onPointerCancel={endDrag}
     >
     <Canvas
-      camera={{ position: [0, 0, 7], fov: 40 }}
+      orthographic
+      camera={{ position: [0, 0, 14], near: 0.1, far: 100 }}
       // Khronos PBR Neutral instead of R3F's default ACES Filmic: ACES
       // desaturates bright base colours, which washed every logo toward
       // pastel (cyan -> mint, green -> sage). Neutral is built for base-colour
@@ -354,6 +372,7 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickne
       }}
       dpr={[1, 2]}
     >
+      <FitOrthoCamera />
       <ambientLight intensity={0.8} />
       <directionalLight position={[5, 5, 5]} intensity={2.5} />
       <directionalLight position={[-3, -2, 4]} intensity={0.8} color="#06b6d4" />

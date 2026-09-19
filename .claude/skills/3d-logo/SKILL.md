@@ -546,17 +546,37 @@ Set `anisotropy = 16` on the colour texture and the normal map (three clamps it 
 
 `preserveDrawingBuffer: true` enables `toDataURL()` for screenshots — can be set to `false` for slightly better GPU performance if not needed.
 
+**Orthographic, not perspective.** With a perspective camera, the half of the coin turned toward the viewer draws bigger than the far half, so the coin looks like it leans in and out as it spins — and at a text logo's flip, the edge squeeze (2d) additionally pulls the now-nearer parts back, making the whole coin visibly shrink and jump. An orthographic camera has no such foreshortening: measured on a recording, the silhouette's top and bottom stay at the exact same pixel through the flip (0px movement) versus a ~30px jump with perspective. `FitOrthoCamera` keeps the framing correct as the canvas resizes (orthographic cameras don't auto-fit like perspective's `fov` does).
+
 ```tsx
+/** Half the visible height, in 3D units: the face (PLANE_SIZE) fills ~77% of the canvas,
+ *  leaving room for the corners as the coin turns. */
+const VIEW_HALF = 3.1
+
+/** Sets camera.zoom from the canvas height so VIEW_HALF stays framed as the canvas resizes —
+ *  an orthographic camera has no fov to do this automatically. */
+function FitOrthoCamera() {
+  const camera = useThree((s) => s.camera)
+  const height = useThree((s) => s.size.height)
+  useLayoutEffect(() => {
+    camera.zoom = height / 2 / VIEW_HALF
+    camera.updateProjectionMatrix()
+  }, [camera, height])
+  return null
+}
+
 export function SpinningLogo3D({ size = 540 }: { size?: number }) {
   return (
     <div style={{ width: size, height: size }} className="mx-auto">
       <Canvas
-        camera={{ position: [0, 0, 7], fov: 40 }}
+        orthographic
+        camera={{ position: [0, 0, 14], near: 0.1, far: 100 }}
         // NeutralToneMapping (import from `three`): R3F's default ACES Filmic
         // desaturates bright base colours and washes logos toward pastel.
         gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true, toneMapping: NeutralToneMapping }}
         dpr={[1, 2]}
       >
+        <FitOrthoCamera />
         <ambientLight intensity={0.8} />
         <directionalLight position={[5, 5, 5]} intensity={2.5} />
         <directionalLight position={[-3, -2, 4]} intensity={0.8} color="#06b6d4" />
@@ -571,6 +591,8 @@ export function SpinningLogo3D({ size = 540 }: { size?: number }) {
   )
 }
 ```
+
+(Import `useThree` alongside `Canvas`, `useFrame` from `@react-three/fiber`, and `useLayoutEffect` from `react`.)
 
 **Making `THICKNESS` a prop:** the demo build (`demo/src/components/SpinningLogo3D.tsx`) exposes it as an optional `thickness?: number` prop instead of a bare constant, clamped to `[0.15, 1.2]` and threaded into both `buildRim(outlines, PLANE_SIZE, thickness)` and `computeCoinFaces(thickness)` — put it in each memo's dependency array so the rim/faces rebuild on change without remounting the Canvas.
 
@@ -616,6 +638,7 @@ Place these at the top of the file so the user can easily adjust:
 |----------|---------|-----------------|
 | `PLANE_SIZE` | 4.8 | Size of the logo face in 3D units |
 | `THICKNESS` | 0.45 | Coin edge thickness |
+| `VIEW_HALF` | 3.1 | Half the visible height in 3D units, for `FitOrthoCamera` — the face fills ~77% of the canvas |
 | `SPIN_SPEED` | 0.35 | Rotation speed (radians/sec) |
 | `BG_THRESHOLD` | 18 | Brightness cutoff for the dark-background fallback (0-255), used only when no solid border is detected |
 | `BG_TOLERANCE` | 24 | Max per-channel colour difference for a pixel to count as background, in both border detection and the flood fill (0-255) |
@@ -636,6 +659,7 @@ Wrap the component in `<Suspense>` when used — the texture loading suspends in
 
 ## Common pitfalls
 
+- **Use an orthographic camera, never perspective** — perspective makes the coin look like it tilts in and out and makes a text logo's flip shrink and jump; keep the squeeze about the axis.
 - **DO NOT use CircleGeometry** for the face — its UV mapping mirrors the texture. Always use PlaneGeometry.
 - **DO NOT flip UVs or rotate the back face by PI** — both mirror the back silhouette against the rim. The back face is the front plane moved to `-half` with `side={BackSide}`.
 - **Text logos need `HAS_TEXT = true`** — otherwise the back reads mirrored, like a real coin. Mirror the back and squeeze the whole coin through edge-on (2d).
