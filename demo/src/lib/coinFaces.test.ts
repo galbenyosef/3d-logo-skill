@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BackSide, FrontSide } from 'three'
-import { SEAM_WINDOW, computeCoinFaces, computeSeamLayout, seamShare } from './coinFaces'
+import { FLIP_WINDOW, computeCoinFaces, flipScale } from './coinFaces'
 
 describe('computeCoinFaces', () => {
   it('places the front face at +half with no rotation and FrontSide', () => {
@@ -39,56 +39,44 @@ describe('computeCoinFaces', () => {
 
 const deg = (d: number) => (d * Math.PI) / 180
 
-describe('seamShare', () => {
-  it('gives the side facing the camera the whole thickness outside the edge-on window', () => {
-    expect(seamShare(0)).toBe(1)
-    expect(seamShare(deg(80))).toBe(1)
-    expect(seamShare(deg(100))).toBe(0)
-    expect(seamShare(deg(180))).toBe(0)
-    expect(seamShare(deg(-40))).toBe(1)
+describe('flipScale', () => {
+  it('is +1 face-on and -1 at the opposite face-on pose', () => {
+    expect(flipScale(0)).toBeCloseTo(1)
+    expect(flipScale(deg(180))).toBeCloseTo(-1)
+    expect(flipScale(deg(-180))).toBeCloseTo(-1)
   })
 
-  it('splits the thickness evenly at edge-on, from either direction', () => {
-    expect(seamShare(deg(90))).toBeCloseTo(0.5)
-    expect(seamShare(deg(270))).toBeCloseTo(0.5)
+  it('is 0 at edge-on, from either direction', () => {
+    expect(flipScale(deg(90))).toBeCloseTo(0)
+    expect(flipScale(deg(270))).toBeCloseTo(0)
+    expect(flipScale(deg(-90))).toBeCloseTo(0)
   })
 
-  it('never jumps: a half-degree step moves the seam by a few percent at most (issue #53)', () => {
+  it('is an odd function of cos(yaw): mirrored yaws give mirrored scales', () => {
+    // cos(180 - a) = -cos(a), so these two yaws feed flipScale opposite s.
+    for (const a of [10, 40, 70, 85]) {
+      expect(flipScale(deg(a))).toBeCloseTo(-flipScale(deg(180 - a)))
+    }
+  })
+
+  it('is flat where the window opens, so the squeeze starts gently', () => {
+    const open = Math.acos(FLIP_WINDOW)
+    expect(flipScale(open - deg(0.5))).toBeCloseTo(1)
+    expect(1 - flipScale(open + deg(0.5))).toBeLessThan(0.01)
+  })
+
+  it('is monotonically decreasing as yaw sweeps 0 to 180 degrees', () => {
+    let prev = flipScale(0)
+    for (let d = 1; d <= 180; d++) {
+      const curr = flipScale(deg(d))
+      expect(curr).toBeLessThanOrEqual(prev + 1e-9)
+      prev = curr
+    }
+  })
+
+  it('never jumps: a half-degree step moves the scale by a few percent at most (issue #53)', () => {
     let worst = 0
-    for (let d = 0; d < 720; d++) worst = Math.max(worst, Math.abs(seamShare(deg((d + 1) / 2)) - seamShare(deg(d / 2))))
-    expect(worst).toBeLessThan(0.06)
-  })
-
-  it('is flat where the window opens, so the seam starts moving gently', () => {
-    const open = Math.acos(SEAM_WINDOW)
-    expect(seamShare(open - deg(0.5))).toBe(1)
-    expect(1 - seamShare(open + deg(0.5))).toBeLessThan(0.01)
-  })
-})
-
-describe('computeSeamLayout', () => {
-  it('front owns the full thickness when share is 1; the back is hidden, never scaled to 0', () => {
-    const l = computeSeamLayout(1, 0.45)
-    expect(l.front).toEqual({ visible: true, scaleZ: 1, positionZ: 0 })
-    expect(l.back.visible).toBe(false)
-    expect(l.back.scaleZ).toBeGreaterThan(0)
-  })
-
-  it('mirrors that when share is 0', () => {
-    const l = computeSeamLayout(0, 0.45)
-    expect(l.front.visible).toBe(false)
-    expect(l.front.scaleZ).toBeGreaterThan(0)
-    expect(l.back.visible).toBe(true)
-    expect(l.back.scaleZ).toBe(1)
-    expect(l.back.positionZ).toBeCloseTo(0)
-  })
-
-  it('at an even split the two rims meet at z = 0 and tile the thickness exactly', () => {
-    const t = 0.45
-    const { front, back } = computeSeamLayout(0.5, t)
-    expect(front.positionZ - (front.scaleZ * t) / 2).toBeCloseTo(0)
-    expect(front.positionZ + (front.scaleZ * t) / 2).toBeCloseTo(t / 2)
-    expect(back.positionZ + (back.scaleZ * t) / 2).toBeCloseTo(0)
-    expect(back.positionZ - (back.scaleZ * t) / 2).toBeCloseTo(-t / 2)
+    for (let d = 0; d < 720; d++) worst = Math.max(worst, Math.abs(flipScale(deg((d + 1) / 2)) - flipScale(deg(d / 2))))
+    expect(worst).toBeLessThan(0.07)
   })
 })

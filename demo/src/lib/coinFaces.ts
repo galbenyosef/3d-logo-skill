@@ -34,44 +34,36 @@ export function computeCoinFaces(thickness: number): CoinFaces {
 
 /**
  * Text logos: the back face is the art mirrored in x so the text reads
- * correctly from behind, and the coin spins continuously. Parts that land on
- * their own rim when mirrored keep ONE rim (./sidedParts); only the other
- * parts get a second, mirrored rim. The seam between a sided part's two rims
- * SLIDES with the turn: the rim facing the camera owns the whole thickness,
- * and the two share it only in a narrow window right at edge-on.
+ * correctly from behind, and the coin spins continuously. The rim is ONE
+ * whole outline built from every part — never split by symmetry — because a
+ * two-part rim (a real outline plus a second, mirrored one swapped in for
+ * the asymmetric parts) shows a stepped wall at edge-on: half one outline,
+ * half its mirror, exactly when it's in view.
+ *
+ * Instead the whole coin narrows through edge-on ("edge squeeze"): every
+ * frame, `flipScale(yaw)` gives an x scale that is +1 while the front faces
+ * the camera, -1 (the mirrored outline) while the back does, and an odd
+ * smoothstep through 0 at edge-on — flat at both ends, so the squeeze starts
+ * and ends without a jolt. The faces take `Math.abs(m)` (never mirrored by
+ * this scale — the back face is already mirrored on its own), and the rim
+ * takes the sign, so it is the front outline before edge-on and its mirror
+ * after: always one whole outline, never a step.
  *
  * Tried and dropped: wrapping the yaw so the front always faced the camera
  * (the 180° snap at edge-on swaps the rim wall in view and pops, issue #53),
- * and mirroring the WHOLE rim with a wide window (its seam showed on the big
- * walls exactly when they were in view).
+ * and splitting the rim by symmetry with a sliding seam (the two-part wall
+ * above, issue #60).
  */
-export const SEAM_WINDOW = 0.12 // |cos yaw| below this (~83°–97°): a sided part's two rims share the thickness
-export const SEAM_MIN = 0.002 // a rim thinner than this share is hidden, never scaled to 0
+export const FLIP_WINDOW = 0.2 // |cos yaw| below this (~78°–102°) the coin narrows through edge-on
+export const FLIP_MIN = 0.02 // narrowest x scale — never 0 (singular matrix), wide enough to avoid z-fighting of collapsed walls
 
 /**
- * The FRONT rim's share of the thickness for a yaw (1 = all of it, 0 = none).
- * An odd smoothstep in cos(yaw): flat at both ends of the window and exactly
- * 0.5 at edge-on, so the seam starts and stops gently and no single frame
- * changes a wall's shape at once.
+ * The coin's x scale for a yaw: +1 face-on, -1 the opposite face-on, an odd
+ * smoothstep in cos(yaw) through 0 at edge-on. Flat at both ends of the
+ * window, so the squeeze starts and stops gently and no single frame snaps
+ * the shape.
  */
-export function seamShare(yaw: number): number {
-  const s = Math.min(Math.max(Math.cos(yaw) / SEAM_WINDOW, -1), 1)
-  return 0.5 + 0.5 * s * (1.5 - 0.5 * s * s)
-}
-
-export interface SeamSide {
-  visible: boolean
-  /** z scale for a rim built at FULL thickness, centred on z = 0. */
-  scaleZ: number
-  positionZ: number
-}
-
-/** Where a sided part's front and back rims go for a given share (see seamShare). */
-export function computeSeamLayout(share: number, thickness: number): { front: SeamSide; back: SeamSide } {
-  const half = thickness / 2
-  const seamZ = half - share * thickness
-  return {
-    front: { visible: share > SEAM_MIN, scaleZ: Math.max(share, SEAM_MIN), positionZ: (half + seamZ) / 2 },
-    back: { visible: share < 1 - SEAM_MIN, scaleZ: Math.max(1 - share, SEAM_MIN), positionZ: (seamZ - half) / 2 },
-  }
+export function flipScale(yaw: number): number {
+  const s = Math.min(Math.max(Math.cos(yaw) / FLIP_WINDOW, -1), 1)
+  return s * (1.5 - 0.5 * s * s)
 }
