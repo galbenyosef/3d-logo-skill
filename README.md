@@ -13,12 +13,6 @@
 
 Any logo → a 3D spinning coin, as one self-contained React Three Fiber component.
 
-<br/>
-
-<img src="screenshots/coins.webp" width="800" alt="Firebird, Koi and Manta enamel-pin logos spinning in sync as 3D coins over a sunset sky" />
-
-<sub><b>FIREBIRD</b> &nbsp;·&nbsp; <b>KOI</b> &nbsp;·&nbsp; <b>MANTA</b></sub>
-
 <br/><br/>
 
 [![Try it live](https://img.shields.io/badge/Try_it_live-FFC9A3?style=for-the-badge)](https://hasuwini77.github.io/3d-logo-skill/)&nbsp;
