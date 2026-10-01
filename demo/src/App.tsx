@@ -3,6 +3,7 @@ import { GetItSection } from './components/GetItSection'
 import { DownloadVideoButton } from './components/DownloadVideoButton'
 import { Hero } from './components/Hero'
 import { PauseToggle } from './components/PauseToggle'
+import { ShareNote } from './components/ShareNote'
 import { Sky } from './components/Sky'
 import { SpinningLogo3D, type SpinOverride } from './components/SpinningLogo3D'
 import { ThicknessSlider } from './components/ThicknessSlider'
@@ -75,7 +76,7 @@ export default function App() {
   const recorder = useCoinRecorder({
     getCanvas,
     spinOverride,
-    logoName: activeLogo.isUpload ? activeLogo.label : activeLogo.label.toLowerCase(),
+    logoName: activeLogo.label,
   })
   // Reduced motion used to drop to 12% speed, which on the many iPhones that
   // ship Reduce Motion on by default read as "broken", not "gentle" (issue #5).
@@ -189,6 +190,8 @@ export default function App() {
                 </div>
                 <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
               </div>
+
+              {recorder.downloaded && <ShareNote onDismiss={recorder.dismiss} />}
 
               {isDraggingOver && (
                 <div className="drop-overlay" aria-hidden="true">
