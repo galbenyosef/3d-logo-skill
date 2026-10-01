@@ -1,4 +1,4 @@
-import { Component, Suspense, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type PointerEvent, type ReactNode } from 'react'
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type PointerEvent, type ReactNode } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useTexture } from '@react-three/drei'
 import { BufferGeometry, CanvasTexture, NeutralToneMapping, DoubleSide, type Group, LinearSRGBColorSpace, type Mesh, type Side, SRGBColorSpace, Vector2 } from 'three'
@@ -60,6 +60,8 @@ interface DragRef {
 /** While `angle` is non-null the coin is held at that yaw (no spin, tilt or drag): the video export drives it. */
 export interface SpinOverride {
   angle: number | null
+  /** Set by the coin: poses it at `angle` and renders synchronously, so a capture right after is exact. */
+  renderAt?: (angle: number) => void
 }
 
 interface LogoAssets {
@@ -175,6 +177,41 @@ function Coin({
   const spinRef = useRef<SpinState>({ angle: 0, velocity: 0, tilt: 0 })
   const { colorTexture, normalMap, rimGeometry, rimColor, rimEmissive } = useLogoAssets(logoUrl, thickness)
   const normalScale = useMemo(() => new Vector2(EMBOSS_STRENGTH, EMBOSS_STRENGTH), [])
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  const camera = useThree((s) => s.camera)
+  // One continuous spin for every logo — text logos never wrap/snap the
+  // yaw (issue #53).
+  const applyPose = (angle: number, tilt: number) => {
+    if (!groupRef.current) return
+    groupRef.current.rotation.y = angle
+    groupRef.current.rotation.x = tilt
+
+    // Text logos: edge squeeze, not a split rim (issue #60). The whole coin
+    // narrows in x through edge-on; the faces take |m| (never mirrored by
+    // this scale — the back face is already mirrored on its own) and the
+    // rim takes the sign, so it is the front outline before edge-on and its
+    // mirror after — always one whole outline, never a two-part wall.
+    const faces = facesRef.current
+    const rimMesh = rimRef.current
+    if (hasText && faces && rimMesh) {
+      const m = flipScale(angle)
+      const width = Math.max(Math.abs(m), FLIP_MIN)
+      faces.scale.x = width
+      rimMesh.scale.x = m < 0 ? -width : width
+    }
+  }
+  useEffect(() => {
+    const o = override.current
+    o.renderAt = (angle) => {
+      o.angle = angle
+      applyPose(angle, 0)
+      gl.render(scene, camera)
+    }
+    return () => {
+      o.renderAt = undefined
+    }
+  })
   useFrame((_, delta) => {
     if (!groupRef.current) return
     const d = drag.current
@@ -190,24 +227,7 @@ function Coin({
           )
     d.pendingDx = 0
     if (forced === null) spinRef.current = spin
-    // One continuous spin for every logo — text logos never wrap/snap the
-    // yaw (issue #53).
-    groupRef.current.rotation.y = spin.angle
-    groupRef.current.rotation.x = spin.tilt
-
-    // Text logos: edge squeeze, not a split rim (issue #60). The whole coin
-    // narrows in x through edge-on; the faces take |m| (never mirrored by
-    // this scale — the back face is already mirrored on its own) and the
-    // rim takes the sign, so it is the front outline before edge-on and its
-    // mirror after — always one whole outline, never a two-part wall.
-    const faces = facesRef.current
-    const rimMesh = rimRef.current
-    if (hasText && faces && rimMesh) {
-      const m = flipScale(spin.angle)
-      const width = Math.max(Math.abs(m), FLIP_MIN)
-      faces.scale.x = width
-      rimMesh.scale.x = m < 0 ? -width : width
-    }
+    applyPose(spin.angle, spin.tilt)
   })
   const { front, back } = useMemo(() => computeCoinFaces(thickness), [thickness])
   const faceMaterial = (side: Side) => (
