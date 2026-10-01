@@ -697,6 +697,28 @@ a {
 /* "Logo has text" switch: same height, fill, border and radius as .select and
    .slider so the three dock controls read as one family; the thumb reuses the
    slider's lit-cloud knob. The native checkbox stays in the a11y tree. */
+.dock-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.dock-actions .switch {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.download-video {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.download-video:disabled {
+  cursor: progress;
+  opacity: 0.72;
+  transform: none;
+}
+
 .switch {
   position: relative;
   display: flex;

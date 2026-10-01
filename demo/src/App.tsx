@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GetItSection } from './components/GetItSection'
+import { DownloadVideoButton } from './components/DownloadVideoButton'
 import { Hero } from './components/Hero'
 import { PauseToggle } from './components/PauseToggle'
 import { Sky } from './components/Sky'
-import { SpinningLogo3D } from './components/SpinningLogo3D'
+import { SpinningLogo3D, type SpinOverride } from './components/SpinningLogo3D'
 import { ThicknessSlider } from './components/ThicknessSlider'
+import { useCoinRecorder } from './lib/useCoinRecorder'
 import { ENV_PRESET_LABELS, ENV_PRESETS, type EnvPreset } from './lib/envPresets'
 import { isAllowedImageType } from './lib/fileValidation'
 import { prepareUploadedLogo } from './lib/imagePipeline'
@@ -67,6 +69,14 @@ export default function App() {
   const uploadedObjectUrl = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const reducedMotion = useReducedMotion()
+  const stageRef = useRef<HTMLDivElement>(null)
+  const spinOverride = useRef<SpinOverride>({ angle: null })
+  const getCanvas = useCallback(() => stageRef.current?.querySelector('canvas') ?? null, [])
+  const recorder = useCoinRecorder({
+    getCanvas,
+    spinOverride,
+    logoName: activeLogo.isUpload ? activeLogo.label : activeLogo.label.toLowerCase(),
+  })
   // Reduced motion used to drop to 12% speed, which on the many iPhones that
   // ship Reduce Motion on by default read as "broken", not "gentle" (issue #5).
   // 50% keeps the coin legibly slower without looking stuck; the explicit
@@ -167,13 +177,14 @@ export default function App() {
                   bobs inside it. Pinning the pause toggle to the anchor keeps
                   it on the coin's corner without bobbing along (issue #21). */}
               <div className="coin-anchor">
-                <div className="coin-canvas-wrap">
+                <div className="coin-canvas-wrap" ref={stageRef}>
                   <SpinningLogo3D
                     logoUrl={activeLogo.url}
                     envPreset={envPreset}
                     spinMultiplier={spinMultiplier}
                     thickness={thickness}
                     hasText={hasText}
+                    spinOverride={spinOverride}
                   />
                 </div>
                 <PauseToggle isPaused={isPaused} onToggle={() => setIsPaused((p) => !p)} />
@@ -248,6 +259,7 @@ export default function App() {
                 <ThicknessSlider thickness={thickness} onChange={setThickness} />
               </div>
 
+              <div className="dock-actions">
               <label className="switch" htmlFor="has-text-toggle">
                 <input
                   id="has-text-toggle"
@@ -265,6 +277,8 @@ export default function App() {
                   <span className="switch-thumb" />
                 </span>
               </label>
+              {recorder.supported && <DownloadVideoButton progress={recorder.progress} onClick={() => void recorder.start()} />}
+              </div>
 
               <p
                 className={`status${statusVisible ? '' : ' visually-hidden'}`}
