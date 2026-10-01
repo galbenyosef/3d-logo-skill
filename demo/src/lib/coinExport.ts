@@ -1,0 +1,69 @@
+/** Pure logic for the "Download video" export — no DOM, so it is unit-tested. */
+
+export const EXPORT_SIZE = 1080
+export const EXPORT_DURATION_MS = 6000
+export const EXPORT_FPS = 30
+/** The dusk sky's mid tone (--sky-mid): the WebGL canvas is transparent, so each frame sits on this. */
+/** Whole frames in the clip: one per 1/FPS step of the single turn. */
+export const EXPORT_FRAME_COUNT = Math.round((EXPORT_FPS * EXPORT_DURATION_MS) / 1000)
+export const EXPORT_BACKGROUND = '#3b3f8f'
+export const EXPORT_CREDIT = '3d-logo-skill'
+
+export const DEMO_URL = 'https://hasuwini77.github.io/3d-logo-skill/'
+export const REPO_URL = 'https://github.com/hasuwini77/3d-logo-skill'
+export const SHARE_TEXT = 'Turned my logo into a 3D coin with 3d-logo-skill'
+
+export interface ExportFormat {
+  mimeType: string
+  extension: 'mp4' | 'webm'
+}
+
+// H.264 first: Chromium happily writes VP9 into a bare `video/mp4`, which
+// QuickTime and X refuse. High profile level 4.0 covers 1080x1080.
+const MIME_PREFERENCE: ExportFormat[] = [
+  { mimeType: 'video/mp4;codecs=avc1.640028', extension: 'mp4' },
+  { mimeType: 'video/mp4;codecs=avc1', extension: 'mp4' },
+  { mimeType: 'video/mp4', extension: 'mp4' },
+  { mimeType: 'video/webm;codecs=vp9', extension: 'webm' },
+  { mimeType: 'video/webm', extension: 'webm' },
+]
+
+/** Best supported container: H.264 mp4, else any mp4, else vp9 webm, else plain webm. Null when nothing is supported. */
+export function pickExportFormat(isTypeSupported: (mime: string) => boolean): ExportFormat | null {
+  return MIME_PREFERENCE.find((f) => isTypeSupported(f.mimeType)) ?? null
+}
+
+/** Yaw for a recording at `progress` (0..1): fixed angular speed, exactly one turn. */
+export function rotationAtProgress(progress: number): number {
+  const p = Math.min(1, Math.max(0, progress))
+  return p * Math.PI * 2
+}
+
+/** Yaw of frame `index` of `count`: frame 0 is face-on and the frame after the last would be 2π again. */
+export function angleAtFrame(index: number, count: number = EXPORT_FRAME_COUNT): number {
+  return rotationAtProgress(index / count)
+}
+
+/** Presentation timestamp (µs) of frame `index`, constant frame rate. */
+export function frameTimestampUs(index: number, fps: number = EXPORT_FPS): number {
+  return Math.round((index * 1_000_000) / fps)
+}
+
+/** H.264 profiles to try for VideoEncoder, best first (High, Main, Constrained Baseline; level 4.0). */
+export const H264_CODECS = ['avc1.640028', 'avc1.4D0028', 'avc1.42E028']
+
+/** `coin-<name>.<ext>`; the name is a logo label or an uploaded file name, sanitised for file systems. */
+export function buildFilename(logoName: string | null | undefined, extension: string): string {
+  const base = (logoName ?? '').replace(/\.[a-z0-9]{1,5}$/i, '')
+  const slug = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+  return `coin-${slug || 'custom'}.${extension}`
+}
+
+export function buildXIntentUrl(text: string = SHARE_TEXT, url: string = DEMO_URL): string {
+  const params = new URLSearchParams({ text, url })
+  return `https://x.com/intent/post?${params.toString()}`
+}

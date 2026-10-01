@@ -81,6 +81,8 @@ import { SpinningLogo3D } from './SpinningLogo3D'
 
 **[hasuwini77.github.io/3d-logo-skill](https://hasuwini77.github.io/3d-logo-skill/)**: pick a preset or drop in your own logo, switch reflections, drag the thickness. It runs the same `SpinningLogo3D.tsx` architecture the skill generates. Your file is processed on an offscreen canvas and never leaves your device.
 
+You can also download your coin as a short looping video (one seamless 360° turn, MP4 or WebM) with the **Download video** button.
+
 ## How it works
 
 1. **Background removal**: samples the 1px border, then flood-fills the connected background from the edge. Enclosed details (the white of an eye, the inside of an "O") stay put.
