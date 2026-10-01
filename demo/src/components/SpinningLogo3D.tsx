@@ -57,6 +57,11 @@ interface DragRef {
   dyTotal: number
 }
 
+/** While `angle` is non-null the coin is held at that yaw (no spin, tilt or drag): the video export drives it. */
+export interface SpinOverride {
+  angle: number | null
+}
+
 interface LogoAssets {
   colorTexture: CanvasTexture
   normalMap: CanvasTexture
@@ -155,12 +160,14 @@ function Coin({
   thickness,
   hasText,
   drag,
+  override,
 }: {
   logoUrl: string
   spinMultiplier: number
   thickness: number
   hasText: boolean
   drag: MutableRefObject<DragRef>
+  override: MutableRefObject<SpinOverride>
 }) {
   const groupRef = useRef<Group>(null)
   const facesRef = useRef<Group>(null)
@@ -171,13 +178,18 @@ function Coin({
   useFrame((_, delta) => {
     if (!groupRef.current) return
     const d = drag.current
-    const spin = stepSpin(
-      spinRef.current,
-      { dragging: d.active, dx: d.pendingDx, dyTotal: d.dyTotal, baseSpeed: SPIN_SPEED * spinMultiplier },
-      delta,
-    )
+    const forced = override.current.angle
+    // Export: a fixed yaw from the recorder, no tilt, drag input discarded.
+    const spin: SpinState =
+      forced !== null
+        ? { angle: forced, velocity: 0, tilt: 0 }
+        : stepSpin(
+            spinRef.current,
+            { dragging: d.active, dx: d.pendingDx, dyTotal: d.dyTotal, baseSpeed: SPIN_SPEED * spinMultiplier },
+            delta,
+          )
     d.pendingDx = 0
-    spinRef.current = spin
+    if (forced === null) spinRef.current = spin
     // One continuous spin for every logo — text logos never wrap/snap the
     // yaw (issue #53).
     groupRef.current.rotation.y = spin.angle
@@ -321,15 +333,19 @@ export interface SpinningLogo3DProps {
   thickness?: number
   /** Logo contains text: the back is mirrored so it reads correctly from both sides — see flipScale in ../lib/coinFaces. */
   hasText?: boolean
+  /** Set `current.angle` to freeze the coin at that yaw (video export); null hands control back. */
+  spinOverride?: MutableRefObject<SpinOverride>
 }
 
-export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickness = THICKNESS, hasText = false }: SpinningLogo3DProps) {
+const NO_OVERRIDE: MutableRefObject<SpinOverride> = { current: { angle: null } }
+
+export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickness = THICKNESS, hasText = false, spinOverride = NO_OVERRIDE }: SpinningLogo3DProps) {
   const clampedThickness = clampThickness(thickness)
   const drag = useRef<DragRef>({ active: false, pointerId: -1, lastX: 0, startY: 0, pendingDx: 0, dyTotal: 0 })
   const [grabbing, setGrabbing] = useState(false)
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return
+    if (e.button !== 0 || spinOverride.current.angle !== null) return
     e.currentTarget.setPointerCapture(e.pointerId)
     Object.assign(drag.current, { active: true, pointerId: e.pointerId, lastX: e.clientX, startY: e.clientY, pendingDx: 0, dyTotal: 0 })
     setGrabbing(true)
@@ -392,7 +408,7 @@ export function SpinningLogo3D({ logoUrl, envPreset, spinMultiplier = 1, thickne
         </Suspense>
       </EnvironmentBoundary>
       <Suspense fallback={null}>
-        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} hasText={hasText} drag={drag} />
+        <Coin key={logoUrl} logoUrl={logoUrl} spinMultiplier={spinMultiplier} thickness={clampedThickness} hasText={hasText} drag={drag} override={spinOverride} />
       </Suspense>
     </Canvas>
     </div>
