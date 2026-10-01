@@ -16,13 +16,17 @@ export interface ExportFormat {
   extension: 'mp4' | 'webm'
 }
 
+// H.264 first: Chromium happily writes VP9 into a bare `video/mp4`, which
+// QuickTime and X refuse. High profile level 4.0 covers 1080x1080.
 const MIME_PREFERENCE: ExportFormat[] = [
+  { mimeType: 'video/mp4;codecs=avc1.640028', extension: 'mp4' },
+  { mimeType: 'video/mp4;codecs=avc1', extension: 'mp4' },
   { mimeType: 'video/mp4', extension: 'mp4' },
   { mimeType: 'video/webm;codecs=vp9', extension: 'webm' },
   { mimeType: 'video/webm', extension: 'webm' },
 ]
 
-/** Best supported container: mp4, else vp9 webm, else plain webm. Null when nothing is supported. */
+/** Best supported container: H.264 mp4, else any mp4, else vp9 webm, else plain webm. Null when nothing is supported. */
 export function pickExportFormat(isTypeSupported: (mime: string) => boolean): ExportFormat | null {
   return MIME_PREFERENCE.find((f) => isTypeSupported(f.mimeType)) ?? null
 }

@@ -9,8 +9,14 @@ import {
 } from './coinExport'
 
 describe('pickExportFormat', () => {
-  it('prefers mp4 when supported', () => {
-    expect(pickExportFormat(() => true)).toEqual({ mimeType: 'video/mp4', extension: 'mp4' })
+  it('prefers H.264 mp4 when supported', () => {
+    expect(pickExportFormat(() => true)).toEqual({ mimeType: 'video/mp4;codecs=avc1.640028', extension: 'mp4' })
+  })
+  it('falls back to a bare mp4 when no H.264 profile is advertised', () => {
+    expect(pickExportFormat((m) => m === 'video/mp4' || m.startsWith('video/webm'))).toEqual({
+      mimeType: 'video/mp4',
+      extension: 'mp4',
+    })
   })
   it('falls back to vp9 webm, then plain webm', () => {
     expect(pickExportFormat((m) => m.startsWith('video/webm'))).toEqual({
