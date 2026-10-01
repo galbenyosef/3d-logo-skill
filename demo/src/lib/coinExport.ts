@@ -4,6 +4,8 @@ export const EXPORT_SIZE = 1080
 export const EXPORT_DURATION_MS = 6000
 export const EXPORT_FPS = 30
 /** The dusk sky's mid tone (--sky-mid): the WebGL canvas is transparent, so each frame sits on this. */
+/** Whole frames in the clip: one per 1/FPS step of the single turn. */
+export const EXPORT_FRAME_COUNT = Math.round((EXPORT_FPS * EXPORT_DURATION_MS) / 1000)
 export const EXPORT_BACKGROUND = '#3b3f8f'
 export const EXPORT_CREDIT = '3d-logo-skill'
 
@@ -36,6 +38,19 @@ export function rotationAtProgress(progress: number): number {
   const p = Math.min(1, Math.max(0, progress))
   return p * Math.PI * 2
 }
+
+/** Yaw of frame `index` of `count`: frame 0 is face-on and the frame after the last would be 2π again. */
+export function angleAtFrame(index: number, count: number = EXPORT_FRAME_COUNT): number {
+  return rotationAtProgress(index / count)
+}
+
+/** Presentation timestamp (µs) of frame `index`, constant frame rate. */
+export function frameTimestampUs(index: number, fps: number = EXPORT_FPS): number {
+  return Math.round((index * 1_000_000) / fps)
+}
+
+/** H.264 profiles to try for VideoEncoder, best first (High, Main, Constrained Baseline; level 4.0). */
+export const H264_CODECS = ['avc1.640028', 'avc1.4D0028', 'avc1.42E028']
 
 /** `coin-<name>.<ext>`; the name is a logo label or an uploaded file name, sanitised for file systems. */
 export function buildFilename(logoName: string | null | undefined, extension: string): string {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  EXPORT_FRAME_COUNT,
+  angleAtFrame,
+  frameTimestampUs,
   DEMO_URL,
   SHARE_TEXT,
   buildFilename,
@@ -62,5 +65,21 @@ describe('buildXIntentUrl', () => {
     expect(u.origin + u.pathname).toBe('https://x.com/intent/post')
     expect(u.searchParams.get('text')).toBe(SHARE_TEXT)
     expect(u.searchParams.get('url')).toBe(DEMO_URL)
+  })
+})
+
+describe('frame-exact timeline', () => {
+  it('has 180 frames for 6 s at 30 fps', () => {
+    expect(EXPORT_FRAME_COUNT).toBe(180)
+  })
+  it('starts face-on and ends one step short of a full turn', () => {
+    expect(angleAtFrame(0)).toBe(0)
+    expect(angleAtFrame(90)).toBeCloseTo(Math.PI)
+    expect(angleAtFrame(EXPORT_FRAME_COUNT - 1)).toBeCloseTo(Math.PI * 2 - (Math.PI * 2) / EXPORT_FRAME_COUNT)
+  })
+  it('steps timestamps at a constant rate', () => {
+    expect(frameTimestampUs(0)).toBe(0)
+    expect(frameTimestampUs(30)).toBe(1_000_000)
+    expect(frameTimestampUs(1) - frameTimestampUs(0)).toBe(33_333)
   })
 })
