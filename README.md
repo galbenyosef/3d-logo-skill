@@ -13,6 +13,8 @@
 
 Any logo → a 3D spinning coin, as one self-contained React Three Fiber component.
 
+A Claude Code / Cursor skill that turns a flat logo into a 3D spinning coin with Three.js: chrome rim that traces your logo's outline, live reflections, no 3D modelling.
+
 <br/>
 
 <img src="screenshots/coins.webp" width="800" alt="Firebird, Koi and Manta enamel-pin logos spinning in sync as 3D coins over a sunset sky" />
@@ -20,6 +22,8 @@ Any logo → a 3D spinning coin, as one self-contained React Three Fiber compone
 <sub><b>FIREBIRD</b> &nbsp;·&nbsp; <b>KOI</b> &nbsp;·&nbsp; <b>MANTA</b></sub>
 
 <br/><br/>
+
+<sub>Download your coin as a looping MP4 straight from the live demo.</sub>
 
 [![Try it live](https://img.shields.io/badge/Try_it_live-FFC9A3?style=for-the-badge)](https://hasuwini77.github.io/3d-logo-skill/)&nbsp;
 [![Agent Skill](https://img.shields.io/badge/Agent_Skill-compatible-C98FB5?style=for-the-badge&labelColor=14163A)](https://agentskills.io)&nbsp;
