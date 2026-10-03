@@ -13,7 +13,7 @@
 
 Any logo → a 3D spinning coin, as one self-contained React Three Fiber component.
 
-A Claude Code / Cursor skill that turns a flat logo into a 3D spinning coin with Three.js: chrome rim that traces your logo's outline, live reflections, no 3D modelling.
+An agent skill for Claude Code, Cursor and Codex, built on Three.js. No 3D modelling.
 
 <br/>
 
