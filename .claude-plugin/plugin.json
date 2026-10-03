@@ -1,7 +1,7 @@
 {
   "name": "3d-logo",
   "description": "Create a 3D spinning coin from any logo image with React Three Fiber. Removes white, black or any flat-colour background, traces the exact logo outline for a chrome rim, and adds environment reflections. Use for a 3D logo, spinning logo, coin or medal effect.",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "author": {
     "name": "hasuwini77"
   },
