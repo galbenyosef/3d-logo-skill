@@ -11,3 +11,6 @@ demo/.check-shots
 demo/.playwright-mcp
 demo/*.png
 .ui-test/
+
+# local `npx skills add` install dir
+.agents/
