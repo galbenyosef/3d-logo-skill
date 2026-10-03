@@ -60,6 +60,8 @@ claude plugin install 3d-logo@3d-logo-skill
 
 </details>
 
+If it saves you time, a ⭐ helps others find it.
+
 ## Usage
 
 Ask your agent:
@@ -128,6 +130,10 @@ The skill does the same for your project: it saves the chosen HDR into `public/h
 npm install three @react-three/fiber @react-three/drei
 npm install -D @types/three
 ```
+
+## Show your coin
+
+Exported a video of your coin? Post it in [Show and tell](https://github.com/hasuwini77/3d-logo-skill/discussions/categories/show-and-tell).
 
 ## Contributing
 
