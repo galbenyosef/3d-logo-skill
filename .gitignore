@@ -9,6 +9,7 @@ demo/test-results
 demo/playwright-report
 demo/.check-shots
 demo/.playwright-mcp
+.playwright-mcp/
 demo/*.png
 .ui-test/
 
